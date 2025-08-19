@@ -1,29 +1,37 @@
 name: Publish to npm on tag
+
+# Trigger on tag pushes matching v1.2.3 pattern
 on:
   push:
     tags:
-      - 'v*.*.*'     #ex: v1.2.3
+      - 'v*.*.*'
 
 jobs:
   publish:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    permissions:
+      contents: read
 
-      - name: Use Node.js
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js (and npm auth helper)
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Install dependencies & build
+      - name: Install dependencies and (optional) build
         run: |
           npm ci
-          npm run build 
+          # run build if present in package.json
+          npm run build --if-present
 
       - name: Publish to npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          npm publish --access public
+          npm publish --access public || npm publish
