@@ -1,6 +1,6 @@
 {
     "name": "codebotsinterpreter",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "author": "Christophe Künzli, Zaid Schouwey, Léonard Jouve",
     "description": "Interpreter for the language used by CodeBots robots",
     "repository": {
