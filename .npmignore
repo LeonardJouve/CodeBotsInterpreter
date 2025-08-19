@@ -1,6 +1,7 @@
 node_modules
 src
 tests
+.github
 .editorconfig
 .gitignore
 tsconfig.json

@@ -2,7 +2,8 @@ name: Publish to npm on tag
 on:
   push:
     tags:
-      - 'v*.*.*'     #ex: v1.2.3
+      - 'v*.*.*'        #ex: v1.2.3
+      - 'v*.*.*-beta.*' #ex: v1.2.3-beta.1
 
 jobs:
   publish:
@@ -20,10 +21,20 @@ jobs:
       - name: Install dependencies & build
         run: |
           npm ci
-          npm run build 
+          npm run build
+
+      - name: Set package.json version from tag
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          npm version $VERSION --no-git-tag-version
 
       - name: Publish to npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          npm publish --access public
+          VERSION=${GITHUB_REF#refs/tags/v}
+          if [[ $VERSION == *"-beta"* ]]; then
+            npm publish --tag beta --access public
+          else
+            npm publish --tag latest --access public
+          fi
