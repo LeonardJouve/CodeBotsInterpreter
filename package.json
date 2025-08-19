@@ -17,7 +17,10 @@
     ],
     "main": "lib/index.js",
     "scripts": {
-        "test": "tsx --test tests/**/*.test.ts"
+        "build": "tsc",
+        "test": "tsx --test tests/**/*.test.ts",
+        "publish": "npm run build && npm publish",
+        "link": "npm run build && npm link"
     },
     "devDependencies": {
         "@types/node": "^24.3.0",
