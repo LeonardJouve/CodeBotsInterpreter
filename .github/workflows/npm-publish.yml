@@ -1,4 +1,6 @@
 name: Publish to npm on tag
+
+# Trigger on tag pushes matching v1.2.3 pattern
 on:
   push:
     tags:
@@ -8,17 +10,22 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    permissions:
+      contents: read
 
-      - name: Use Node.js
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js (and npm auth helper)
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Install dependencies & build
+      - name: Install dependencies and (optional) build
         run: |
           npm ci
           npm run build
@@ -34,7 +41,7 @@ jobs:
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
           if [[ $VERSION == *"-beta"* ]]; then
-            npm publish --tag beta --access public
+            npm publish --tag beta
           else
-            npm publish --tag latest --access public
+            npm publish --tag latest
           fi
