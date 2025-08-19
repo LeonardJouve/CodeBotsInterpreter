@@ -28,6 +28,7 @@ jobs:
       - name: Install dependencies and (optional) build
         run: |
           npm ci
+          npm test
           npm run build
 
       - name: Set package.json version from tag
