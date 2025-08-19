@@ -1,11 +1,11 @@
 {
     "name": "codebotsinterpreter",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "author": "Christophe Künzli, Zaid Schouwey, Léonard Jouve",
     "description": "Interpreter for the language used by CodeBots robots",
     "repository": {
         "type": "git",
-        "url": "https://github.com/LeonardJouve/CodeBotsInterpreter.git"
+        "url": "git+https://github.com/LeonardJouve/CodeBotsInterpreter.git"
     },
     "bugs": {
         "url": "https://github.com/LeonardJouve/CodeBotsInterpreter/issues"
