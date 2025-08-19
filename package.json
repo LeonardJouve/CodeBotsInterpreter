@@ -1,11 +1,27 @@
 {
-  "name": "codebotsinterpreter",
-  "version": "1.0.0",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
-  "license": "ISC",
-  "description": ""
+    "name": "codebotsinterpreter",
+    "version": "1.0.0",
+    "author": "Christophe Künzli, Zaid Schouwey, Léonard Jouve",
+    "description": "Interpreter for the language used by CodeBots robots",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/LeonardJouve/CodeBotsInterpreter.git"
+    },
+    "bugs": {
+        "url": "https://github.com/LeonardJouve/CodeBotsInterpreter/issues"
+    },
+    "homepage": "https://github.com/LeonardJouve/CodeBotsInterpreter",
+    "keywords": [
+        "codebots",
+        "interpreter"
+    ],
+    "main": "lib/index.js",
+    "scripts": {
+        "test": "tsx --test tests/**/*.test.ts"
+    },
+    "devDependencies": {
+        "@types/node": "^24.3.0",
+        "tsx": "^4.20.4",
+        "typescript": "^5.9.2"
+    }
 }
