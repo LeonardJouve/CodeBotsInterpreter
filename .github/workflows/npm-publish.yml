@@ -12,6 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }} 
 
     steps:
       - name: Checkout repository
@@ -37,8 +39,6 @@ jobs:
           npm version $VERSION --no-git-tag-version
 
       - name: Publish to npm
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
           if [[ $VERSION == *"-beta"* ]]; then
