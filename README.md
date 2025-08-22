@@ -13,6 +13,7 @@ isEmpty(): boolean
 wait(time)
 hold(item)
 has(item): boolean
+place(item)
 
 while (condition) {
     if (condition) {  
