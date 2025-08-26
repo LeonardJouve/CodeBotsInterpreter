@@ -3,15 +3,15 @@ import type {Token} from "../token";
 
 export default class ReturnStatement implements Statement {
     public token: Token;
-    // public value: Expression;
+    public value: Expression;
 
-    constructor(token: Token/*, returnValue: Expression*/) {
+    constructor(token: Token, value: Expression) {
         this.token = token;
-        // this.value = returnValue;
+        this.value = value;
     }
 
     toString(): string {
-        return this.literal() + " "/* + this.value.toString()*/ + ";";
+        return this.literal() + " " + this.value.toString() + ";";
     }
 
     literal(): string {

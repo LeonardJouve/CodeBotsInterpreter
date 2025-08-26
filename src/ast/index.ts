@@ -2,13 +2,9 @@ interface Node {
     literal(): string;
 };
 
-export interface Statement extends Node {
-	// statementNode();
-};
+export interface Statement extends Node {};
 
-export interface Expression extends Node {
-	// expressionNode();
-};
+export interface Expression extends Node {};
 
 
 

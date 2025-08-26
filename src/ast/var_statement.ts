@@ -5,12 +5,12 @@ import type IdentifierExpression from "./identifier_expression";
 export default class VarStatement implements Statement {
 	public token: Token;
 	public name: IdentifierExpression;
-	// public value: Expression;
+	public value: Expression;
 
-    constructor(token: Token, name: IdentifierExpression/*, value: Expression*/) {
+    constructor(token: Token, name: IdentifierExpression, value: Expression) {
         this.token = token;
         this.name = name;
-        // this.value = value;
+        this.value = value;
     }
 
     toString(): string {

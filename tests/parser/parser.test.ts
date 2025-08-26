@@ -11,6 +11,7 @@ import IntegerExpression from "../../src/ast/integer_expression";
 import PrefixExpression from "../../src/ast/prefix_expression";
 import InfixExpression from "../../src/ast/infix_expression";
 import BooleanExpression from "../../src/ast/boolean_expression";
+import IfExpression from "../../src/ast/if_expression";
 
 test("parser", (t) => {
     t.test("VarStatement should be parsed as expected", () => {
@@ -96,9 +97,7 @@ test("parser", (t) => {
 
             assert.equal(statement.literal(), "return");
 
-            // if returnStatement.Value.String() != test.expected {
-            //     t.Errorf("[Test] Invalid retrun expression: received %s, expected %s", returnStatement.Value.String(), test.expected)
-            // }
+            assert.equal(statement.value.toString(), test.expected);
         });
     });
     t.test("IntegerExpression should be parsed as expected", () => {
@@ -130,16 +129,16 @@ test("parser", (t) => {
                 operator: "-",
                 value:    15,
             },
-            // {
-            //     input:    "!true",
-            //     operator: "!",
-            //     value:    true,
-            // },
-            // {
-            //     input:    "!false",
-            //     operator: "!",
-            //     value:    false,
-            // },
+            {
+                input:    "!true",
+                operator: "!",
+                value:    true,
+            },
+            {
+                input:    "!false",
+                operator: "!",
+                value:    false,
+            },
         ];
 
         tests.forEach((test) => {
@@ -265,6 +264,42 @@ test("parser", (t) => {
         assert.ok(statement instanceof ExpressionStatement);
 
         testBooleanExpression(statement.expression, true);
+    });
+    t.test("IfExpression should be parsed as expected", () => {
+        const tests = [
+            {
+                input:             "if (x < y) { x }",
+                conditionOperator: "<",
+                conditionLeft:     "x",
+                conditionRight:    "y",
+                consequence:       "x",
+                alternative:       "",
+            },
+            {
+                input:             "if (y > x) { y } else { x }",
+                conditionOperator: ">",
+                conditionLeft:     "y",
+                conditionRight:    "x",
+                consequence:       "y",
+                alternative:       "x",
+            },
+        ];
+
+        tests.forEach((test) => {
+            const lexer = new Lexer(test.input);
+            const parser = new Parser(lexer);
+            const program = parser.parseProgram();
+
+            testParserErrors(parser);
+
+            assert.equal(program.statements.length, 1);
+
+            const [statement] = program.statements;
+
+            assert.ok(statement instanceof ExpressionStatement);
+
+            testIfExpression(statement.expression, test.conditionOperator, test.conditionLeft, test.conditionRight, test.consequence, test.alternative);
+        });
     });
     t.test("should parse with expected operator precedence", () => {
         const tests = [
@@ -403,12 +438,9 @@ const testVarStatement = (statement: Statement, name: string, value: number | st
 
     assert.ok(statement instanceof VarStatement);
 
-	assert.equal(statement.name.value, name);
-	assert.equal(statement.name.literal(), name);
+    testIdentifierExpression(statement.name, name);
 
-	// if !testLiteralExpression(t, letStatement.Value, value) {
-	// 	return false
-	// }
+	testLiteralExpression(statement.value, value);
 };
 
 const testIntegerExpression = (expression: Expression, value: number) => {
@@ -455,4 +487,32 @@ const testBooleanExpression = (expression: Expression, value: boolean) => {
     assert.equal(expression.value, value);
 
     assert.equal(expression.literal(), String(value));
+}
+
+const testIfExpression = (expression: Expression, expectedConditionOperator: string, expectedConditionLeft: string, expectedConditionRight: string, expectedConsequence: string, expectedAlternative?: string) => {
+	assert.ok(expression instanceof IfExpression);
+
+	testInfixExpression(expression.condition, expectedConditionOperator, expectedConditionLeft, expectedConditionRight);
+
+    const {consequence, alternative} = expression;
+    assert.equal(consequence.statements.length, 1);
+
+    let [statement] = consequence.statements;
+
+    assert.ok(statement instanceof ExpressionStatement);
+
+	testIdentifierExpression(statement.expression, expectedConsequence);
+
+	if (expectedAlternative) {
+        assert.ok(alternative);
+        assert.equal(alternative.statements.length, 1);
+
+        [statement] = alternative.statements;
+
+        assert.ok(statement instanceof ExpressionStatement);
+
+		testIdentifierExpression(statement.expression, expectedAlternative);
+	} else {
+        assert.ok(!alternative);
+    }
 }

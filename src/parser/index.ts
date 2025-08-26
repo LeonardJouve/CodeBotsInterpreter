@@ -1,7 +1,9 @@
 import type {Expression, Statement} from "../ast";
+import BlockStatement from "../ast/block_statement";
 import BooleanExpression from "../ast/boolean_expression";
 import ExpressionStatement from "../ast/expression_statement";
 import IdentifierExpression from "../ast/identifier_expression";
+import IfExpression from "../ast/if_expression";
 import InfixExpression from "../ast/infix_expression";
 import IntegerExpression from "../ast/integer_expression";
 import PrefixExpression from "../ast/prefix_expression";
@@ -62,6 +64,7 @@ export default class Parser {
             [TokenType.TRUE]: this.parseBooleanExpression.bind(this),
             [TokenType.FALSE]: this.parseBooleanExpression.bind(this),
             [TokenType.LPAREN]: this.parseGroupedExpression.bind(this),
+            [TokenType.IF]: this.parseIfExpression.bind(this),
         };
         this.infixParsers = {
             [TokenType.EQUAL]: this.parseInfixExpression.bind(this),
@@ -158,17 +161,16 @@ export default class Parser {
 
         this.nextToken();
 
-        // const value = parser.parseExpression(LOWEST)
+        const value = this.parseExpression(OperatorPrecedence.LOWEST);
+        if (!value) {
+            return null;
+        }
 
-        // if parser.nextTok.Type == token.SEMICOLON {
-            // parser.nextToken()
-        // }
-
-        while (this.currentToken.type !== TokenType.SEMICOLON) {
+        if (this.peekToken.type === TokenType.SEMICOLON) {
             this.nextToken();
         }
 
-        return new ReturnStatement(token/*, value*/);
+        return new ReturnStatement(token, value);
     }
 
     parseVarStatement(): VarStatement|null {
@@ -184,17 +186,17 @@ export default class Parser {
             return null;
         }
 
-        // this.nextToken();
-        // const value = this.parseExpression(LOWEST);
+        this.nextToken();
+        const value = this.parseExpression(OperatorPrecedence.LOWEST);
+        if (!value) {
+            return null;
+        }
 
-        // if parser.nextTok.Type == token.SEMICOLON {
-        //     parser.nextToken()
-        // }
-        while (this.currentToken.type !== TokenType.SEMICOLON) {
+        if (this.peekToken.type === TokenType.SEMICOLON) {
             this.nextToken();
         }
 
-        return new VarStatement(token, name/*, value*/);
+        return new VarStatement(token, name, value);
     }
 
     parsePrefixExpression(): PrefixExpression|null {
@@ -238,6 +240,62 @@ export default class Parser {
         }
 
         return expression;
+    }
+
+    parseBlockStatement(): BlockStatement {
+        const token = this.currentToken;
+
+        this.nextToken();
+
+        const statements = [];
+        while (this.currentToken.type !== TokenType.RBRACE && this.currentToken.type !== TokenType.EOF) {
+            const statement = this.parseStatement();
+            if (statement) {
+                statements.push(statement);
+            }
+
+            this.nextToken();
+        }
+
+        return new BlockStatement(token, statements);
+    }
+
+    parseIfExpression(): IfExpression|null {
+        const token = this.currentToken;
+
+        if (!this.expectPeekTokenType(TokenType.LPAREN)) {
+            return null;
+        }
+
+        this.nextToken();
+
+        const condition = this.parseExpression(OperatorPrecedence.LOWEST);
+        if (!condition) {
+            return null;
+        }
+
+        if (!this.expectPeekTokenType(TokenType.RPAREN)) {
+            return null;
+        }
+
+        if (!this.expectPeekTokenType(TokenType.LBRACE)) {
+            return null;
+        }
+
+        const consequence = this.parseBlockStatement();
+
+        let alternative;
+        if (this.peekToken.type === TokenType.ELSE) {
+            this.nextToken();
+
+            if (!this.expectPeekTokenType(TokenType.LBRACE)) {
+                return null;
+            }
+
+            alternative = this.parseBlockStatement();
+        }
+
+        return new IfExpression(token, condition, consequence, alternative);
     }
 
     expectPeekTokenType(tokenType: TokenType): boolean {
