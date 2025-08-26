@@ -2,8 +2,9 @@ Interpreter for the language used by [CodeBots](https://github.com/zaidschouwey9
 
 Inspired by Thorsten Ball's [book](https://interpreterbook.com)
 
-The interpreter is split into multiple parts:
+The interpreter is split into multiple steps:
 - [Lexer](https://github.com/LeonardJouve/CodeBotsInterpreter/tree/main/src/lexer)
+- [Parser](https://github.com/LeonardJouve/CodeBotsInterpreter/tree/main/src/parser)
 
 Instructions to support
 ```

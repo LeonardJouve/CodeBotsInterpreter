@@ -20,7 +20,7 @@
         "noUnusedParameters": true,
         "noImplicitReturns": true,
         "noFallthroughCasesInSwitch": true,
-        "outDir": "lib"
+        "outDir": "lib",
     },
     "include": ["src/**/*"]
 }

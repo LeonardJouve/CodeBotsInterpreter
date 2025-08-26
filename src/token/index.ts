@@ -20,8 +20,8 @@ export enum TokenType {
 	EQUAL     = "EQUAL",
 	NOT_EQUAL = "NOT_EQUAL",
 
-	LR = "LR",
-	GR = "GR",
+	LT = "LT",
+	GT = "GT",
 
 	COMMA     = "COMMA",
 	COLON     = "COLON",
