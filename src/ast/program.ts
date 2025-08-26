@@ -8,7 +8,7 @@ export default class Program {
     }
 
     toString(): string {
-        return this.statements.reduce((acc, statement) => acc + statement, "")
+        return this.statements.map((statement) => statement.toString()).join("");
     }
 
     literal(): string {

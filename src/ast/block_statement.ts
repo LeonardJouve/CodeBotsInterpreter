@@ -11,7 +11,7 @@ export default class BlockStatement implements Statement {
     }
 
     toString(): string {
-        return this.statements.reduce((acc, statement) => acc + statement.toString(), "");
+        return this.statements.map((statement) => statement.toString()).join("");
     }
 
     literal(): string {

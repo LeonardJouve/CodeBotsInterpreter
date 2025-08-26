@@ -1,6 +1,7 @@
 import type {Expression, Statement} from "../ast";
 import BlockStatement from "../ast/block_statement";
 import BooleanExpression from "../ast/boolean_expression";
+import CallExpression from "../ast/call_expression";
 import ExpressionStatement from "../ast/expression_statement";
 import FunctionExpression from "../ast/function_expression";
 import IdentifierExpression from "../ast/identifier_expression";
@@ -36,6 +37,7 @@ const precedence: Partial<Record<TokenType, OperatorPrecedence>> = {
     [TokenType.MINUS]: OperatorPrecedence.SUM,
     [TokenType.SLASH]: OperatorPrecedence.PRODUCT,
     [TokenType.ASTERISX]: OperatorPrecedence.PRODUCT,
+    [TokenType.LPAREN]: OperatorPrecedence.CALL,
 };
 
 export default class Parser {
@@ -77,7 +79,7 @@ export default class Parser {
             [TokenType.MINUS]: this.parseInfixExpression.bind(this),
             [TokenType.ASTERISX]: this.parseInfixExpression.bind(this),
             [TokenType.SLASH]: this.parseInfixExpression.bind(this),
-            // [TokenType.LPAREN]: this.parseCallExpression.bind(this),
+            [TokenType.LPAREN]: this.parseCallExpression.bind(this),
             // [TokenType.LBRACKET]:  this.parseIndexExpression.bind(this),
         };
 
@@ -343,6 +345,52 @@ export default class Parser {
         const body = this.parseBlockStatement();
 
         return new FunctionExpression(token, parameters, body);
+    }
+
+    parseExpressionList(expectedCloseTokenType: TokenType): Expression[]|null {
+        const expressions: Expression[] = [];
+
+        this.nextToken();
+
+        if (this.peekToken.type === expectedCloseTokenType) {
+            return expressions;
+        }
+
+        let expression = this.parseExpression(OperatorPrecedence.LOWEST);
+        if (!expression) {
+            return null;
+        }
+
+        expressions.push(expression);
+
+        while (this.peekToken.type === TokenType.COMMA) {
+            this.nextToken();
+            this.nextToken();
+
+            let expression = this.parseExpression(OperatorPrecedence.LOWEST);
+            if (!expression) {
+                return null;
+            }
+
+            expressions.push(expression);
+        }
+
+        if (!this.expectPeekTokenType(expectedCloseTokenType)) {
+            return null;
+        }
+
+        return expressions;
+    }
+
+    parseCallExpression(func: Expression): CallExpression|null {
+        const token = this.currentToken;
+
+        const args = this.parseExpressionList(TokenType.RPAREN);
+        if (args === null) {
+            return null;
+        }
+
+        return new CallExpression(token, func, args);
     }
 
     expectPeekTokenType(tokenType: TokenType): boolean {
