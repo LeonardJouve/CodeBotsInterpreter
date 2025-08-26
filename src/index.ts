@@ -16,12 +16,7 @@ const repl = () => {
 
     process.stdin.setEncoding("utf-8");
 
-    process.stdin.on("data", (chunk: string) => {
-        const line = chunk.trim();
-        if (line.length === 0) {
-            process.exit(0);
-        }
-
+    process.stdin.on("data", (line: string) => {
         const lexer = new Lexer(line);
 
         for (let token = lexer.nextToken(); token.type !== "EOF"; token = lexer.nextToken()) {
