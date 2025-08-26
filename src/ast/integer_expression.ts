@@ -1,5 +1,5 @@
 import type {Expression} from ".";
-import { Token } from "../token";
+import type {Token} from "../token";
 
 export default class IntegerExpression implements Expression {
     public token: Token;

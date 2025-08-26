@@ -19,18 +19,18 @@ test("ast", () => {
             },
             "variable",
         ),
-        /* new IdentifierExpression(
+        new IdentifierExpression(
             {
                 type: TokenType.IDENTIFIER,
                 literal: "anotherVariable",
             },
             "anotherVariable",
-        ), */
+        ),
     );
 
     program.appendStatement(statement);
 
-    const expected = "var variable = ;"; // anotherVariable;";
+    const expected = "var variable = anotherVariable;";
 
 	assert.equal(program.toString(), expected);
 });

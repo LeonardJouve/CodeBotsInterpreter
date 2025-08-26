@@ -14,7 +14,7 @@ export default class VarStatement implements Statement {
     }
 
     toString(): string {
-        return this.literal() + " " + this.name.toString() + " = "/* + this.value.toString()*/ + ";";
+        return this.literal() + " " + this.name.toString() + " = " + this.value.toString() + ";";
     }
 
     literal(): string {
