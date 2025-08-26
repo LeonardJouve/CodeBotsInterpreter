@@ -68,14 +68,14 @@ test("lexer", (t) => {
     })
     t.test("nextToken should return expected token", () => {
         const input = `
-            let five = 5;
-            let ten = 10;
+            var five = 5;
+            var ten = 10;
 
-            let add = fn(x, y) {
+            var add = fn(x, y) {
                 x + y;
             };
 
-            let result = add(five, ten);
+            var result = add(five, ten);
 
             !-/*5;
             5 < 10 > 5;
@@ -95,17 +95,17 @@ test("lexer", (t) => {
         `;
 
         const tests: Token[] = [
-            {type: TokenType.LET, literal: "let"},
+            {type: TokenType.VAR, literal: "var"},
             {type: TokenType.IDENTIFIER, literal: "five"},
             {type: TokenType.ASSIGN, literal: "="},
             {type: TokenType.INT, literal: "5"},
             {type: TokenType.SEMICOLON, literal: ";"},
-            {type: TokenType.LET, literal: "let"},
+            {type: TokenType.VAR, literal: "var"},
             {type: TokenType.IDENTIFIER, literal: "ten"},
             {type: TokenType.ASSIGN, literal: "="},
             {type: TokenType.INT, literal: "10"},
             {type: TokenType.SEMICOLON, literal: ";"},
-            {type: TokenType.LET, literal: "let"},
+            {type: TokenType.VAR, literal: "var"},
             {type: TokenType.IDENTIFIER, literal: "add"},
             {type: TokenType.ASSIGN, literal: "="},
             {type: TokenType.FUNCTION, literal: "fn"},
@@ -121,7 +121,7 @@ test("lexer", (t) => {
             {type: TokenType.SEMICOLON, literal: ";"},
             {type: TokenType.RBRACE, literal: "}"},
             {type: TokenType.SEMICOLON, literal: ";"},
-            {type: TokenType.LET, literal: "let"},
+            {type: TokenType.VAR, literal: "var"},
             {type: TokenType.IDENTIFIER, literal: "result"},
             {type: TokenType.ASSIGN, literal: "="},
             {type: TokenType.IDENTIFIER, literal: "add"},

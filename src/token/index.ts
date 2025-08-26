@@ -38,7 +38,7 @@ export enum TokenType {
 	IF       = "IF",
 	ELSE     = "ELSE",
 	RETURN   = "RETURN",
-	LET      = "LET",
+	VAR      = "VAR",
 	TRUE     = "TRUE",
 	FALSE    = "FALSE",
 };
@@ -48,7 +48,7 @@ const keywords: Record<string, TokenType> = {
 	"if": TokenType.IF,
 	"else": TokenType.ELSE,
 	"return": TokenType.RETURN,
-	"let": TokenType.LET,
+	"var": TokenType.VAR,
 	"true": TokenType.TRUE,
 	"false": TokenType.FALSE,
 };

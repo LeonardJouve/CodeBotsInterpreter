@@ -22,8 +22,8 @@ test("token", (t) => {
                 expected: TokenType.RETURN,
             },
             {
-                input: "let",
-                expected: TokenType.LET,
+                input: "var",
+                expected: TokenType.VAR,
             },
             {
                 input: "true",
