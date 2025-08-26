@@ -18,7 +18,7 @@
     "scripts": {
         "build": "tsc",
         "test": "tsx --test tests/**/*.test.ts",
-        "start": "tsx src/repl/index.ts"
+        "start": "tsx -e \"import Interpreter from './src'; new Interpreter().repl();\""
     },
     "devDependencies": {
         "@types/node": "^24.3.0",
