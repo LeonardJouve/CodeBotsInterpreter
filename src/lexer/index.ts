@@ -2,32 +2,16 @@ import {lookupIdentifier, TokenType, type Token} from "../token";
 import {isLetter, isDigit} from "../utils";
 
 export default class Lexer {
-    private _input: string;
-    private _position: number;
-    private _readPosition: number;
-    private _char: string;
+    public input: string;
+    public position: number;
+    public readPosition: number;
+    public char: string;
 
     constructor(input: string) {
-        this._input = input;
-        this._position = 0;
-        this._readPosition = 0;
-        this._char = "\x00";
-    }
-
-    get input(): string {
-        return this._input;
-    }
-
-    get char(): string {
-        return this._char;
-    }
-
-    get readPosition(): number {
-        return this._readPosition;
-    }
-
-    get position(): number {
-        return this._position;
+        this.input = input;
+        this.position = 0;
+        this.readPosition = 0;
+        this.char = "\x00";
     }
 
     nextToken(): Token {
@@ -156,13 +140,13 @@ export default class Lexer {
 
     readChar() {
         if (this.readPosition >= this.input.length) {
-            this._char = "\x00";
+            this.char = "\x00";
             return;
         }
 
-        this._char = this.input[this.readPosition];
-        this._position = this.readPosition;
-        this._readPosition += 1;
+        this.char = this.input[this.readPosition];
+        this.position = this.readPosition;
+        this.readPosition += 1;
     }
 
     peekChar(): string {
