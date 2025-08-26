@@ -55,10 +55,10 @@ export default class Lexer {
             token.type = TokenType.ASTERISX;
             break;
         case "<":
-            token.type = TokenType.LR;
+            token.type = TokenType.LT;
             break;
         case ">":
-            token.type = TokenType.GR;
+            token.type = TokenType.GT;
             break;
         case "=":
             if  (this.peekChar() === "=") {

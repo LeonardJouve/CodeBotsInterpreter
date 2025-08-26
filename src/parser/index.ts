@@ -1,6 +1,7 @@
 import type {Expression, Statement} from "../ast";
 import ExpressionStatement from "../ast/expression_statement";
 import IdentifierExpression from "../ast/identifier_expression";
+import InfixExpression from "../ast/infix_expression";
 import IntegerExpression from "../ast/integer_expression";
 import PrefixExpression from "../ast/prefix_expression";
 import Program from "../ast/program";
@@ -10,7 +11,7 @@ import type Lexer from "../lexer";
 import {TokenType, type Token} from "../token";
 
 type PrefixParser = () => Expression|null;
-type InfixParser = (expression: Expression) => Expression;
+type InfixParser = (expression: Expression) => Expression|null;
 
 enum OperatorPrecedence {
     LOWEST,
@@ -20,6 +21,17 @@ enum OperatorPrecedence {
     PRODUCT,
     PREFIX,
     CALL,
+};
+
+const precedence: Partial<Record<TokenType, OperatorPrecedence>> = {
+    [TokenType.EQUAL]: OperatorPrecedence.EQUALS,
+    [TokenType.NOT_EQUAL]: OperatorPrecedence.EQUALS,
+    [TokenType.LT]: OperatorPrecedence.LESSGREATER,
+    [TokenType.GT]: OperatorPrecedence.LESSGREATER,
+    [TokenType.PLUS]: OperatorPrecedence.SUM,
+    [TokenType.MINUS]: OperatorPrecedence.SUM,
+    [TokenType.SLASH]: OperatorPrecedence.PRODUCT,
+    [TokenType.ASTERISX]: OperatorPrecedence.PRODUCT,
 };
 
 export default class Parser {
@@ -47,7 +59,18 @@ export default class Parser {
             [TokenType.BANG]: this.parsePrefixExpression.bind(this),
             [TokenType.MINUS]: this.parsePrefixExpression.bind(this),
         };
-        this.infixParsers = {};
+        this.infixParsers = {
+            [TokenType.EQUAL]: this.parseInfixExpression.bind(this),
+            [TokenType.NOT_EQUAL]: this.parseInfixExpression.bind(this),
+            [TokenType.LT]: this.parseInfixExpression.bind(this),
+            [TokenType.GT]: this.parseInfixExpression.bind(this),
+            [TokenType.PLUS]: this.parseInfixExpression.bind(this),
+            [TokenType.MINUS]: this.parseInfixExpression.bind(this),
+            [TokenType.ASTERISX]: this.parseInfixExpression.bind(this),
+            [TokenType.SLASH]: this.parseInfixExpression.bind(this),
+            // token.LPAREN:    parser.parseCallExpression,
+            // token.LBRACKET:  parser.parseIndexExpression,
+        };
 
         this.nextToken();
         this.nextToken();
@@ -90,21 +113,24 @@ export default class Parser {
             return null;
         }
 
-        const left = prefix();
+        let left = prefix();
         if (!left) {
             return null;
         }
 
-        // for parser.nextTok.Type != token.SEMICOLON && prec < parser.getNextPrecedence() {
-        //     infix, ok := parser.infixParsers[parser.nextTok.Type]
-        //     if !ok {
-        //         return left
-        //     }
+        while (this.peekToken.type !== TokenType.SEMICOLON && precedence < this.getPeekPrecedence()) {
+            const infix = this.infixParsers[this.peekToken.type];
+            if (!infix) {
+                return left;
+            }
 
-        //     parser.nextToken()
+            this.nextToken();
 
-        //     left = infix(left)
-        // }
+            left = infix(left);
+            if (!left) {
+                return null;
+            }
+        }
 
         return left;
     }
@@ -185,6 +211,22 @@ export default class Parser {
         return new PrefixExpression(token, token.literal, right);
     }
 
+    parseInfixExpression(left: Expression): InfixExpression|null {
+        // defer untrace(trace("parseInfixExpression"))
+
+        const token = this.currentToken;
+        const precedence = this.getCurrentPrecedence();
+
+        this.nextToken();
+
+        const right = this.parseExpression(precedence);
+        if (!right) {
+            return null;
+        }
+
+        return new InfixExpression(token, token.literal, left, right);
+    }
+
     expectPeekTokenType(tokenType: TokenType): boolean {
         if (this.peekToken.type !== tokenType) {
             this.addInvalidPeekTokenTypeError(this.peekToken, tokenType);
@@ -194,6 +236,14 @@ export default class Parser {
         this.nextToken();
 
         return true;
+    }
+
+    getPeekPrecedence(): OperatorPrecedence {
+        return precedence[this.peekToken.type] ?? OperatorPrecedence.LOWEST;
+    }
+
+    getCurrentPrecedence(): OperatorPrecedence {
+        return precedence[this.currentToken.type] ?? OperatorPrecedence.LOWEST;
     }
 
     addInvalidPeekTokenTypeError(received: Token, expected: TokenType) {

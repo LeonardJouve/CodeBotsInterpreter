@@ -9,6 +9,7 @@ import ExpressionStatement from "../../src/ast/expression_statement";
 import IdentifierExpression from "../../src/ast/identifier_expression";
 import IntegerExpression from "../../src/ast/integer_expression";
 import PrefixExpression from "../../src/ast/prefix_expression";
+import InfixExpression from "../../src/ast/infix_expression";
 
 test("parser", (t) => {
     t.test("VarStatement should be parsed as expected", () => {
@@ -144,6 +145,16 @@ test("parser", (t) => {
                 operator: "-",
                 value:    15,
             },
+            // {
+            //     input:    "!true",
+            //     operator: "!",
+            //     value:    true,
+            // },
+            // {
+            //     input:    "!false",
+            //     operator: "!",
+            //     value:    false,
+            // },
         ];
 
         tests.forEach((test) => {
@@ -165,9 +176,207 @@ test("parser", (t) => {
 
             assert.equal(expression.operator, test.operator);
 
-            testIntegerExpression(expression.right, test.value);
+            testLiteralExpression(expression.right, test.value);
         });
     });
+    t.test("InfixExpression should be parsed as expected", () => {
+        const tests = [
+            {
+                input:    "5 + 15;",
+                operator: "+",
+                left:     5,
+                right:    15,
+            },
+            {
+                input:    "5 - 15;",
+                operator: "-",
+                left:     5,
+                right:    15,
+            },
+            {
+                input:    "5 * 15;",
+                operator: "*",
+                left:     5,
+                right:    15,
+            },
+            {
+                input:    "5 / 15;",
+                operator: "/",
+                left:     5,
+                right:    15,
+            },
+            {
+                input:    "5 < 15;",
+                operator: "<",
+                left:     5,
+                right:    15,
+            },
+            {
+                input:    "5 > 15;",
+                operator: ">",
+                left:     5,
+                right:    15,
+            },
+            {
+                input:    "5 == 15;",
+                operator: "==",
+                left:     5,
+                right:    15,
+            },
+            {
+                input:    "5 != 15;",
+                operator: "!=",
+                left:     5,
+                right:    15,
+            },
+            // {
+            //     input:    "true == true",
+            //     operator: "==",
+            //     left:     true,
+            //     right:    true,
+            // },
+            // {
+            //     input:    "false != false",
+            //     operator: "!=",
+            //     left:     false,
+            //     right:    false,
+            // },
+        ];
+
+        tests.forEach((test) => {
+            const lexer = new Lexer(test.input);
+            const parser = new Parser(lexer);
+            const program = parser.parseProgram();
+
+            testParserErrors(parser);
+
+            assert.equal(program.statements.length, 1)
+
+            const [statement] = program.statements;
+
+            assert.ok(statement instanceof ExpressionStatement);
+
+            testInfixExpression(statement.expression, test.operator, test.left, test.right);
+        });
+    });
+    t.test("should parse with expected operator precedence", () => {
+        const tests = [
+            {
+                input:    "-a * b",
+                expected: "((-a) * b)",
+            },
+            {
+                input:    "!-a",
+                expected: "(!(-a))",
+            },
+            {
+                input:    "a + b + c",
+                expected: "((a + b) + c)",
+            },
+            {
+                input:    "a + b - c",
+                expected: "((a + b) - c)",
+            },
+            {
+                input:    "a * b * c",
+                expected: "((a * b) * c)",
+            },
+            {
+                input:    "a * b / c",
+                expected: "((a * b) / c)",
+            },
+            {
+                input:    "a + b / c",
+                expected: "(a + (b / c))",
+            },
+            {
+                input:    "a + b * c + d / e - f",
+                expected: "(((a + (b * c)) + (d / e)) - f)",
+            },
+            {
+                input:    "3 + 4; -5 * 5",
+                expected: "(3 + 4)((-5) * 5)",
+            },
+            {
+                input:    "5 > 4 == 3 < 4",
+                expected: "((5 > 4) == (3 < 4))",
+            },
+            {
+                input:    "5 > 4 != 3 < 4",
+                expected: "((5 > 4) != (3 < 4))",
+            },
+            {
+                input:    "3 + 4 * 5 == 3 * 1 + 4 * 5",
+                expected: "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",
+            },
+            // {
+            //     input:    "true",
+            //     expected: "true",
+            // },
+            // {
+            //     input:    "false",
+            //     expected: "false",
+            // },
+            // {
+            //     input:    "3 > 5 == false",
+            //     expected: "((3 > 5) == false)",
+            // },
+            // {
+            //     input:    "3 < 5 == true",
+            //     expected: "((3 < 5) == true)",
+            // },
+            // {
+            //     input:    "1 + (2 + 3) + 4",
+            //     expected: "((1 + (2 + 3)) + 4)",
+            // },
+            // {
+            //     input:    "(5 + 5) * 2",
+            //     expected: "((5 + 5) * 2)",
+            // },
+            // {
+            //     input:    "2 / (5 + 5)",
+            //     expected: "(2 / (5 + 5))",
+            // },
+            // {
+            //     input:    "-(5 + 5)",
+            //     expected: "(-(5 + 5))",
+            // },
+            // {
+            //     input:    "!(true == true)",
+            //     expected: "(!(true == true))",
+            // },
+            // {
+            //     input:    "a + add(b * c) + d",
+            //     expected: "((a + add((b * c))) + d)",
+            // },
+            // {
+            //     input:    "add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))",
+            //     expected: "add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))",
+            // },
+            // {
+            //     input:    "add(a + b + c * d / f + g)",
+            //     expected: "add((((a + b) + ((c * d) / f)) + g))",
+            // },
+            // {
+            //     input:    "a * [1, 2, 3, 4][b * c] * d",
+            //     expected: "((a * ([1, 2, 3, 4][(b * c)])) * d)",
+            // },
+            // {
+            //     input:    "add(a * b[2], b[1], 2 * [1, 2][1])",
+            //     expected: "add((a * (b[2])), (b[1]), (2 * ([1, 2][1])))",
+            // },
+        ];
+
+        tests.forEach((test) => {
+            const lexer = new Lexer(test.input);
+            const parser = new Parser(lexer);
+            const program = parser.parseProgram();
+
+            testParserErrors(parser);
+
+            assert.equal(program.toString(), test.expected);
+        });
+    })
 });
 
 const testParserErrors = (parser: Parser) => {
@@ -180,7 +389,7 @@ const testParserErrors = (parser: Parser) => {
 	parser.errors.forEach((err) => console.error(err));
 
     assert.fail();
-}
+};
 
 const testVarStatement = (statement: Statement, name: string, value: any) => {
 	assert.equal(statement.literal(), "var");
@@ -201,4 +410,26 @@ const testIntegerExpression = (expression: Expression, value: number) => {
 	assert.equal(expression.value, value);
 
 	assert.equal(expression.literal(), String(value));
+};
+
+const testLiteralExpression = (expression: Expression, expected: number|string|boolean) => {
+    switch (typeof expected) {
+	case "number":
+		return testIntegerExpression(expression, expected);
+	// case "string":
+	// 	return testIdentifier(expression, expected);
+	// case "boolean":
+	// 	return testBooleanLiteral(expression, expected);
+	default:
+        assert.fail("unsupported expected result type");
+	}
+}
+
+const testInfixExpression = (expression: Expression, operator: string, left: any, right: any) => {
+    assert.ok(expression instanceof InfixExpression);
+
+	assert.equal(expression.operator, operator);
+
+	testLiteralExpression(expression.left, left);
+	testLiteralExpression(expression.right, right);
 };
