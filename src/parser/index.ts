@@ -1,16 +1,33 @@
-import type {Statement} from "../ast";
+import type {Expression, Statement} from "../ast";
+import ExpressionStatement from "../ast/expression_statement";
 import IdentifierExpression from "../ast/identifier_expression";
+import IntegerExpression from "../ast/integer_expression";
 import Program from "../ast/program";
 import ReturnStatement from "../ast/return_statement";
 import VarStatement from "../ast/var_statement";
 import type Lexer from "../lexer";
 import {TokenType, type Token} from "../token";
 
+type PrefixParser = () => Expression;
+type InfixParser = (expression: Expression) => Expression;
+
+enum OperatorPrecedence {
+    LOWEST,
+    EQUALS,
+    LESSGREATER,
+    SUM,
+    PRODUCT,
+    PREFIX,
+    CALL,
+};
+
 export default class Parser {
     public lexer: Lexer;
     public currentToken: Token;
     public peekToken: Token;
     public errors: string[];
+    public prefixParsers: Partial<Record<TokenType, PrefixParser>>;
+	public infixParsers: Partial<Record<TokenType, InfixParser>>;
 
     constructor(lexer: Lexer) {
         this.lexer = lexer;
@@ -23,6 +40,11 @@ export default class Parser {
             literal: "",
         };
         this.errors = [];
+        this.prefixParsers = {
+            [TokenType.IDENTIFIER]: this.parseIdentifier.bind(this),
+            [TokenType.INT]: this.parseInteger.bind(this),
+        };
+        this.infixParsers = {};
 
         this.nextToken();
         this.nextToken();
@@ -40,8 +62,62 @@ export default class Parser {
         case TokenType.RETURN:
             return this.parseReturnStatement();
         default:
-            return null; // parser.parseExpressionStatement()
+            return this.parseExpressionStatement()
         }
+    }
+
+    parseIdentifier(): IdentifierExpression {
+        return new IdentifierExpression(this.currentToken, this.currentToken.literal);
+    }
+
+    parseInteger(): IntegerExpression {
+        const value = Number(this.currentToken.literal);
+        if (!Number.isInteger(value)) {
+            this.errors.push(`could not parse ${this.currentToken.literal} to an integer`);
+        }
+
+        return new IntegerExpression(this.currentToken, value);
+    }
+
+    parseExpression(precedence: OperatorPrecedence): Expression|null {
+        // defer untrace(trace("parseExpression"))
+        const prefix = this.prefixParsers[this.currentToken.type];
+        if (!prefix) {
+            // this.addInvalidPrefixError(this.currentToken.type);
+            return null;
+        }
+
+        const left = prefix();
+
+        // for parser.nextTok.Type != token.SEMICOLON && prec < parser.getNextPrecedence() {
+        //     infix, ok := parser.infixParsers[parser.nextTok.Type]
+        //     if !ok {
+        //         return left
+        //     }
+
+        //     parser.nextToken()
+
+        //     left = infix(left)
+        // }
+
+        return left;
+    }
+
+    parseExpressionStatement(): ExpressionStatement|null {
+        // defer untrace(trace("parseExpressionStatement"))
+
+        const token = this.currentToken;
+
+        const expression = this.parseExpression(OperatorPrecedence.LOWEST);
+        if (!expression) {
+            return null;
+        }
+
+        if (this.peekToken.type ===  TokenType.SEMICOLON) {
+            this.nextToken();
+        }
+
+        return new ExpressionStatement(token, expression);
     }
 
     parseReturnStatement(): ReturnStatement|null {

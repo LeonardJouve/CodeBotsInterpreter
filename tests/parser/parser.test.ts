@@ -2,9 +2,12 @@ import assert from "node:assert";
 import test from "node:test"
 import Lexer from "../../src/lexer";
 import Parser from "../../src/parser";
+import {Statement} from "../../src/ast";
 import VarStatement from "../../src/ast/var_statement";
 import ReturnStatement from "../../src/ast/return_statement";
-import {Statement} from "../../src/ast";
+import ExpressionStatement from "../../src/ast/expression_statement";
+import IdentifierExpression from "../../src/ast/identifier_expression";
+import IntegerExpression from "../../src/ast/integer_expression";
 
 test("parser", (t) => {
     t.test("VarStatement should be parsed as expected", () => {
@@ -38,6 +41,33 @@ test("parser", (t) => {
             testVarStatement(program.statements[0], test.expectedIdentifier, test.expectedValue);
         });
     });
+    t.test("IdentifierExpression should be parsed as expected", () => {
+        const input = "foo;";
+
+        const lexer = new Lexer(input);
+        const parser = new Parser(lexer);
+        const program = parser.parseProgram();
+
+        testParserErrors(parser);
+
+        assert.equal(program.statements.length, 1);
+
+        const [statement] = program.statements;
+
+        assert.ok(statement instanceof ExpressionStatement);
+
+        // if !testIdentifier(t, expressionStatement.Value, token.TokenLiteral("foo")) {
+        //     return
+        // }
+
+        const {expression} = statement
+
+        assert.ok(expression instanceof IdentifierExpression);
+
+        assert.equal(expression.value, "foo");
+
+        assert.equal(expression.literal(), "foo");
+    })
     t.test("ReturnStatement should be parsed as expected", () => {
         const tests = [
             {
@@ -77,6 +107,29 @@ test("parser", (t) => {
             //     t.Errorf("[Test] Invalid retrun expression: received %s, expected %s", returnStatement.Value.String(), test.expected)
             // }
         });
+    });
+    t.test("IntegerExpression should be parsed as expected", () => {
+        const input = "5;";
+
+        const lexer = new Lexer(input);
+        const parser = new Parser(lexer);
+        const program = parser.parseProgram();
+
+        testParserErrors(parser);
+
+        assert.equal(program.statements.length, 1);
+
+        const [statement] = program.statements;
+
+        assert.ok(statement instanceof ExpressionStatement);
+
+        const {expression} = statement;
+
+        assert.ok(expression instanceof IntegerExpression);
+
+        assert.equal(expression.value, 5);
+
+        assert.equal(expression.literal(), "5");
     });
 });
 
