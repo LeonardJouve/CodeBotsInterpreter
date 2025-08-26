@@ -12,6 +12,7 @@ import PrefixExpression from "../../src/ast/prefix_expression";
 import InfixExpression from "../../src/ast/infix_expression";
 import BooleanExpression from "../../src/ast/boolean_expression";
 import IfExpression from "../../src/ast/if_expression";
+import FunctionExpression from "../../src/ast/function_expression";
 
 test("parser", (t) => {
     t.test("VarStatement should be parsed as expected", () => {
@@ -299,6 +300,83 @@ test("parser", (t) => {
             assert.ok(statement instanceof ExpressionStatement);
 
             testIfExpression(statement.expression, test.conditionOperator, test.conditionLeft, test.conditionRight, test.consequence, test.alternative);
+        });
+    });
+    t.test("FunctionExpression should be parsed as expected", () => {
+        const input = "fn (x, y) { x + y; }";
+
+        const lexer = new Lexer(input);
+        const parser = new Parser(lexer);
+        const program = parser.parseProgram();
+
+        testParserErrors(parser);
+
+        assert.equal(program.statements.length, 1);
+
+        let [statement] = program.statements;
+
+        assert.ok(statement instanceof ExpressionStatement);
+
+        const {expression} = statement;
+
+        assert.ok(expression instanceof FunctionExpression);
+
+        assert.equal(expression.parameters.length, 2);
+
+        testLiteralExpression(expression.parameters[0], "x")
+        testLiteralExpression(expression.parameters[1], "y")
+
+        const {body} = expression;
+
+        assert.equal(body.statements.length, 1);
+
+        [statement] = body.statements;
+
+        assert.ok(statement instanceof ExpressionStatement);
+
+        testInfixExpression(statement.expression, "+", "x", "y");
+    });
+    t.test("should parse function parameters as expected", () => {
+        const tests = [
+            {
+                input:    "fn () {}",
+                expected: [],
+            },
+            {
+                input: "fn (x) {}",
+                expected: ["x"],
+            },
+            {
+                input: "fn (x, y) {}",
+                expected: [
+                    "x",
+                    "y",
+                ],
+            },
+        ];
+
+        tests.forEach((test) => {
+            const lexer = new Lexer(test.input);
+            const parser = new Parser(lexer);
+            const program = parser.parseProgram();
+
+            testParserErrors(parser);
+
+            assert.equal(program.statements.length, 1);
+
+            const [statement] = program.statements;
+
+            assert.ok(statement instanceof ExpressionStatement);
+
+            const {expression} = statement;
+
+            assert.ok(expression instanceof FunctionExpression);
+
+            assert.equal(expression.parameters.length, test.expected.length);
+
+            test.expected.forEach((expectedParameter, i) => {
+                testLiteralExpression(expression.parameters[i], expectedParameter);
+            });
         });
     });
     t.test("should parse with expected operator precedence", () => {

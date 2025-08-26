@@ -2,6 +2,7 @@ import type {Expression, Statement} from "../ast";
 import BlockStatement from "../ast/block_statement";
 import BooleanExpression from "../ast/boolean_expression";
 import ExpressionStatement from "../ast/expression_statement";
+import FunctionExpression from "../ast/function_expression";
 import IdentifierExpression from "../ast/identifier_expression";
 import IfExpression from "../ast/if_expression";
 import InfixExpression from "../ast/infix_expression";
@@ -65,6 +66,7 @@ export default class Parser {
             [TokenType.FALSE]: this.parseBooleanExpression.bind(this),
             [TokenType.LPAREN]: this.parseGroupedExpression.bind(this),
             [TokenType.IF]: this.parseIfExpression.bind(this),
+            [TokenType.FUNCTION]: this.parseFunctionExpression.bind(this),
         };
         this.infixParsers = {
             [TokenType.EQUAL]: this.parseInfixExpression.bind(this),
@@ -296,6 +298,51 @@ export default class Parser {
         }
 
         return new IfExpression(token, condition, consequence, alternative);
+    }
+
+    parseFunctionParameters(): IdentifierExpression[]|null {
+        const parameters: IdentifierExpression[] = [];
+
+        this.nextToken();
+
+        if (this.currentToken.type === TokenType.RPAREN) {
+            return parameters;
+        }
+
+        parameters.push(new IdentifierExpression(this.currentToken, this.currentToken.literal));
+
+        while (this.peekToken.type === TokenType.COMMA) {
+            this.nextToken()
+            this.nextToken()
+            parameters.push(new IdentifierExpression(this.currentToken, this.currentToken.literal));
+        }
+
+        if (!this.expectPeekTokenType(TokenType.RPAREN)) {
+            return null;
+        }
+
+        return parameters;
+    }
+
+    parseFunctionExpression(): FunctionExpression|null {
+        const token = this.currentToken;
+
+        if (!this.expectPeekTokenType(TokenType.LPAREN)) {
+            return null;
+        }
+
+        const parameters = this.parseFunctionParameters();
+        if (!parameters) {
+            return null;
+        }
+
+        if (!this.expectPeekTokenType(TokenType.LBRACE)) {
+            return null;
+        }
+
+        const body = this.parseBlockStatement();
+
+        return new FunctionExpression(token, parameters, body);
     }
 
     expectPeekTokenType(tokenType: TokenType): boolean {
