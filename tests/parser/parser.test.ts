@@ -3,6 +3,7 @@ import test from "node:test"
 import Lexer from "../../src/lexer";
 import Parser from "../../src/parser";
 import VarStatement from "../../src/ast/var_statement";
+import ReturnStatement from "../../src/ast/return_statement";
 import {Statement} from "../../src/ast";
 
 test("parser", (t) => {
@@ -37,6 +38,46 @@ test("parser", (t) => {
             testVarStatement(program.statements[0], test.expectedIdentifier, test.expectedValue);
         });
     });
+    t.test("ReturnStatement should be parsed as expected", () => {
+        const tests = [
+            {
+                input:    "return 5;",
+                expected: "5",
+            },
+            {
+                input:    "return 10;",
+                expected: "10",
+            },
+            {
+                input:    "return x;",
+                expected: "x",
+            },
+            {
+                input:    "return x + y;",
+                expected: "(x + y)",
+            },
+        ];
+
+        tests.forEach((test) => {
+            const lexer = new Lexer(test.input);
+            const parser = new Parser(lexer);
+            const program = parser.parseProgram();
+
+            testParserErrors(parser);
+
+            assert.equal(program.statements.length, 1);
+
+            const [statement] = program.statements;
+
+            assert.ok(statement instanceof ReturnStatement);
+
+            assert.equal(statement.literal(), "return");
+
+            // if returnStatement.Value.String() != test.expected {
+            //     t.Errorf("[Test] Invalid retrun expression: received %s, expected %s", returnStatement.Value.String(), test.expected)
+            // }
+        });
+    });
 });
 
 const testParserErrors = (parser: Parser) => {
@@ -52,12 +93,6 @@ const testParserErrors = (parser: Parser) => {
 }
 
 const testVarStatement = (statement: Statement, name: string, value: any) => {
-	// letType, ok := token.GetKeywordFromType(token.LET)
-	// if !ok {
-	// 	t.Error("[Test] Invalid token type: received token.LET")
-	// 	return false
-	// }
-
 	assert.equal(statement.literal(), "var");
 
     assert.ok(statement instanceof VarStatement);

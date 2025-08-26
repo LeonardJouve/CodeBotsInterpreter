@@ -1,6 +1,7 @@
 import type {Statement} from "../ast";
 import Identifier from "../ast/identifier";
 import Program from "../ast/program";
+import ReturnStatement from "../ast/return_statement";
 import VarStatement from "../ast/var_statement";
 import type Lexer from "../lexer";
 import {TokenType, type Token} from "../token";
@@ -36,11 +37,29 @@ export default class Parser {
         switch (this.currentToken.type) {
         case TokenType.VAR:
             return this.parseVarStatement();
-        // case token.RETURN:
-        //     return parser.parseReturnStatement()
+        case TokenType.RETURN:
+            return this.parseReturnStatement();
         default:
             return null; // parser.parseExpressionStatement()
         }
+    }
+
+    parseReturnStatement(): ReturnStatement|null {
+        const token = this.currentToken;
+
+        this.nextToken();
+
+        // const value = parser.parseExpression(LOWEST)
+
+        // if parser.nextTok.Type == token.SEMICOLON {
+            // parser.nextToken()
+        // }
+
+        while (this.currentToken.type !== TokenType.SEMICOLON) {
+            this.nextToken();
+        }
+
+        return new ReturnStatement(token/*, value*/);
     }
 
     parseVarStatement(): VarStatement|null {
