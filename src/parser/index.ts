@@ -61,6 +61,7 @@ export default class Parser {
             [TokenType.MINUS]: this.parsePrefixExpression.bind(this),
             [TokenType.TRUE]: this.parseBooleanExpression.bind(this),
             [TokenType.FALSE]: this.parseBooleanExpression.bind(this),
+            [TokenType.LPAREN]: this.parseGroupedExpression.bind(this),
         };
         this.infixParsers = {
             [TokenType.EQUAL]: this.parseInfixExpression.bind(this),
@@ -71,8 +72,8 @@ export default class Parser {
             [TokenType.MINUS]: this.parseInfixExpression.bind(this),
             [TokenType.ASTERISX]: this.parseInfixExpression.bind(this),
             [TokenType.SLASH]: this.parseInfixExpression.bind(this),
-            // token.LPAREN:    parser.parseCallExpression,
-            // token.LBRACKET:  parser.parseIndexExpression,
+            // [TokenType.LPAREN]: this.parseCallExpression.bind(this),
+            // [TokenType.LBRACKET]:  this.parseIndexExpression.bind(this),
         };
 
         this.nextToken();
@@ -225,6 +226,18 @@ export default class Parser {
 
     parseBooleanExpression(): BooleanExpression {
         return new BooleanExpression(this.currentToken, this.currentToken.type === TokenType.TRUE);
+    }
+
+    parseGroupedExpression(): Expression|null {
+        this.nextToken();
+
+        const expression = this.parseExpression(OperatorPrecedence.LOWEST);
+
+        if (!this.expectPeekTokenType(TokenType.RPAREN)) {
+            return null;
+        }
+
+        return expression;
     }
 
     expectPeekTokenType(tokenType: TokenType): boolean {
