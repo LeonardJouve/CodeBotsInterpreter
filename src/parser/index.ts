@@ -1,4 +1,5 @@
 import type {Expression, Statement} from "../ast";
+import BooleanExpression from "../ast/boolean_expression";
 import ExpressionStatement from "../ast/expression_statement";
 import IdentifierExpression from "../ast/identifier_expression";
 import InfixExpression from "../ast/infix_expression";
@@ -58,6 +59,8 @@ export default class Parser {
             [TokenType.INT]: this.parseInteger.bind(this),
             [TokenType.BANG]: this.parsePrefixExpression.bind(this),
             [TokenType.MINUS]: this.parsePrefixExpression.bind(this),
+            [TokenType.TRUE]: this.parseBooleanExpression.bind(this),
+            [TokenType.FALSE]: this.parseBooleanExpression.bind(this),
         };
         this.infixParsers = {
             [TokenType.EQUAL]: this.parseInfixExpression.bind(this),
@@ -220,6 +223,10 @@ export default class Parser {
         return new InfixExpression(token, token.literal, left, right);
     }
 
+    parseBooleanExpression(): BooleanExpression {
+        return new BooleanExpression(this.currentToken, this.currentToken.type === TokenType.TRUE);
+    }
+
     expectPeekTokenType(tokenType: TokenType): boolean {
         if (this.peekToken.type !== tokenType) {
             this.addInvalidPeekTokenTypeError(this.peekToken, tokenType);
@@ -259,6 +266,6 @@ export default class Parser {
             this.nextToken();
         }
 
-        return program
+        return program;
     }
 }

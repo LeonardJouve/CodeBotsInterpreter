@@ -10,6 +10,7 @@ import IdentifierExpression from "../../src/ast/identifier_expression";
 import IntegerExpression from "../../src/ast/integer_expression";
 import PrefixExpression from "../../src/ast/prefix_expression";
 import InfixExpression from "../../src/ast/infix_expression";
+import BooleanExpression from "../../src/ast/boolean_expression";
 
 test("parser", (t) => {
     t.test("VarStatement should be parsed as expected", () => {
@@ -213,18 +214,24 @@ test("parser", (t) => {
                 left:     5,
                 right:    15,
             },
-            // {
-            //     input:    "true == true",
-            //     operator: "==",
-            //     left:     true,
-            //     right:    true,
-            // },
-            // {
-            //     input:    "false != false",
-            //     operator: "!=",
-            //     left:     false,
-            //     right:    false,
-            // },
+            {
+                input:    "true == true",
+                operator: "==",
+                left:     true,
+                right:    true,
+            },
+            {
+                input:    "false == false",
+                operator: "==",
+                left:     false,
+                right:    false,
+            },
+            {
+                input:    "true != false",
+                operator: "!=",
+                left:     true,
+                right:    false,
+            },
         ];
 
         tests.forEach((test) => {
@@ -242,6 +249,22 @@ test("parser", (t) => {
 
             testInfixExpression(statement.expression, test.operator, test.left, test.right);
         });
+    });
+    t.test("BooleanExpression should be parsed as expected", () => {
+        const input = "true;"
+
+        const lexer = new Lexer(input);
+        const parser = new Parser(lexer);
+        const program = parser.parseProgram();
+
+        testParserErrors(parser);
+
+        assert.equal(program.statements.length, 1);
+        const [statement] = program.statements;
+
+        assert.ok(statement instanceof ExpressionStatement);
+
+        testBooleanExpression(statement.expression, true);
     });
     t.test("should parse with expected operator precedence", () => {
         const tests = [
@@ -293,22 +316,22 @@ test("parser", (t) => {
                 input:    "3 + 4 * 5 == 3 * 1 + 4 * 5",
                 expected: "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))",
             },
-            // {
-            //     input:    "true",
-            //     expected: "true",
-            // },
-            // {
-            //     input:    "false",
-            //     expected: "false",
-            // },
-            // {
-            //     input:    "3 > 5 == false",
-            //     expected: "((3 > 5) == false)",
-            // },
-            // {
-            //     input:    "3 < 5 == true",
-            //     expected: "((3 < 5) == true)",
-            // },
+            {
+                input:    "true",
+                expected: "true",
+            },
+            {
+                input:    "false",
+                expected: "false",
+            },
+            {
+                input:    "3 > 5 == false",
+                expected: "((3 > 5) == false)",
+            },
+            {
+                input:    "3 < 5 == true",
+                expected: "((3 < 5) == true)",
+            },
             // {
             //     input:    "1 + (2 + 3) + 4",
             //     expected: "((1 + (2 + 3)) + 4)",
@@ -402,8 +425,8 @@ const testLiteralExpression = (expression: Expression, expected: number | string
 		return testIntegerExpression(expression, expected);
 	case "string":
 		return testIdentifierExpression(expression, expected);
-	// case "boolean":
-	// 	return testBooleanLiteral(expression, expected);
+	case "boolean":
+		return testBooleanExpression(expression, expected);
 	default:
         assert.fail("unsupported expected result type");
 	}
@@ -425,3 +448,11 @@ const testIdentifierExpression = (expression: Expression, value: string) => {
 
     assert.equal(expression.literal(), value);
 };
+
+const testBooleanExpression = (expression: Expression, value: boolean) => {
+    assert.ok(expression instanceof BooleanExpression);
+
+    assert.equal(expression.value, value);
+
+    assert.equal(expression.literal(), String(value));
+}
