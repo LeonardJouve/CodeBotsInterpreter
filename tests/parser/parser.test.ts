@@ -58,17 +58,7 @@ test("parser", (t) => {
 
         assert.ok(statement instanceof ExpressionStatement);
 
-        // if !testIdentifier(t, expressionStatement.Value, token.TokenLiteral("foo")) {
-        //     return
-        // }
-
-        const {expression} = statement
-
-        assert.ok(expression instanceof IdentifierExpression);
-
-        assert.equal(expression.value, "foo");
-
-        assert.equal(expression.literal(), "foo");
+        testIdentifierExpression(statement.expression, "foo");
     })
     t.test("ReturnStatement should be parsed as expected", () => {
         const tests = [
@@ -125,13 +115,7 @@ test("parser", (t) => {
 
         assert.ok(statement instanceof ExpressionStatement);
 
-        const {expression} = statement;
-
-        assert.ok(expression instanceof IntegerExpression);
-
-        assert.equal(expression.value, 5);
-
-        assert.equal(expression.literal(), "5");
+        testIntegerExpression(statement.expression, 5);
     });
     t.test("PrefixExpression should be parsed as expected", () => {
         const tests = [
@@ -391,7 +375,7 @@ const testParserErrors = (parser: Parser) => {
     assert.fail();
 };
 
-const testVarStatement = (statement: Statement, name: string, value: any) => {
+const testVarStatement = (statement: Statement, name: string, value: number | string | boolean) => {
 	assert.equal(statement.literal(), "var");
 
     assert.ok(statement instanceof VarStatement);
@@ -412,24 +396,32 @@ const testIntegerExpression = (expression: Expression, value: number) => {
 	assert.equal(expression.literal(), String(value));
 };
 
-const testLiteralExpression = (expression: Expression, expected: number|string|boolean) => {
+const testLiteralExpression = (expression: Expression, expected: number | string | boolean) => {
     switch (typeof expected) {
 	case "number":
 		return testIntegerExpression(expression, expected);
-	// case "string":
-	// 	return testIdentifier(expression, expected);
+	case "string":
+		return testIdentifierExpression(expression, expected);
 	// case "boolean":
 	// 	return testBooleanLiteral(expression, expected);
 	default:
         assert.fail("unsupported expected result type");
 	}
-}
+};
 
-const testInfixExpression = (expression: Expression, operator: string, left: any, right: any) => {
+const testInfixExpression = (expression: Expression, operator: string, left: number | string | boolean, right: number | string | boolean) => {
     assert.ok(expression instanceof InfixExpression);
 
 	assert.equal(expression.operator, operator);
 
 	testLiteralExpression(expression.left, left);
 	testLiteralExpression(expression.right, right);
+};
+
+const testIdentifierExpression = (expression: Expression, value: string) => {
+    assert.ok(expression instanceof IdentifierExpression);
+
+    assert.equal(expression.value, value);
+
+    assert.equal(expression.literal(), value);
 };

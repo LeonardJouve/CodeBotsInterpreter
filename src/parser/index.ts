@@ -106,7 +106,6 @@ export default class Parser {
     }
 
     parseExpression(precedence: OperatorPrecedence): Expression|null {
-        // defer untrace(trace("parseExpression"))
         const prefix = this.prefixParsers[this.currentToken.type];
         if (!prefix) {
             this.addInvalidPrefixError(this.currentToken.type);
@@ -136,8 +135,6 @@ export default class Parser {
     }
 
     parseExpressionStatement(): ExpressionStatement|null {
-        // defer untrace(trace("parseExpressionStatement"))
-
         const token = this.currentToken;
 
         const expression = this.parseExpression(OperatorPrecedence.LOWEST);
@@ -197,8 +194,6 @@ export default class Parser {
     }
 
     parsePrefixExpression(): PrefixExpression|null {
-        // defer untrace(trace("parsePrefixExpression"))
-
         const token = this.currentToken;
 
         this.nextToken();
@@ -212,8 +207,6 @@ export default class Parser {
     }
 
     parseInfixExpression(left: Expression): InfixExpression|null {
-        // defer untrace(trace("parseInfixExpression"))
-
         const token = this.currentToken;
         const precedence = this.getCurrentPrecedence();
 
