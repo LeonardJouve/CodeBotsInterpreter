@@ -10,6 +10,10 @@ export default class ReturnStatement implements Statement {
         // this.value = returnValue;
     }
 
+    toString(): string {
+        return this.literal() + " "/* + this.value.toString()*/ + ";";
+    }
+
     literal(): string {
         return this.token.literal;
     }

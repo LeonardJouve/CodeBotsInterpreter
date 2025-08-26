@@ -1,5 +1,5 @@
 interface Node {
-	literal(): string;
+    literal(): string;
 };
 
 export interface Statement extends Node {

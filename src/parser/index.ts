@@ -1,5 +1,5 @@
 import type {Statement} from "../ast";
-import Identifier from "../ast/identifier";
+import IdentifierExpression from "../ast/identifier_expression";
 import Program from "../ast/program";
 import ReturnStatement from "../ast/return_statement";
 import VarStatement from "../ast/var_statement";
@@ -69,7 +69,7 @@ export default class Parser {
             return null;
         }
 
-        const name = new Identifier(this.currentToken, this.currentToken.literal);
+        const name = new IdentifierExpression(this.currentToken, this.currentToken.literal);
 
         if (!this.expectPeekTokenType(TokenType.ASSIGN)) {
             return null;
