@@ -2,12 +2,13 @@ import assert from "node:assert";
 import test from "node:test"
 import Lexer from "../../src/lexer";
 import Parser from "../../src/parser";
-import {Statement} from "../../src/ast";
+import {Expression, Statement} from "../../src/ast";
 import VarStatement from "../../src/ast/var_statement";
 import ReturnStatement from "../../src/ast/return_statement";
 import ExpressionStatement from "../../src/ast/expression_statement";
 import IdentifierExpression from "../../src/ast/identifier_expression";
 import IntegerExpression from "../../src/ast/integer_expression";
+import PrefixExpression from "../../src/ast/prefix_expression";
 
 test("parser", (t) => {
     t.test("VarStatement should be parsed as expected", () => {
@@ -131,6 +132,42 @@ test("parser", (t) => {
 
         assert.equal(expression.literal(), "5");
     });
+    t.test("PrefixExpression should be parsed as expected", () => {
+        const tests = [
+            {
+                input:    "!5",
+                operator: "!",
+                value:    5,
+            },
+            {
+                input:    "-15;",
+                operator: "-",
+                value:    15,
+            },
+        ];
+
+        tests.forEach((test) => {
+            const lexer = new Lexer(test.input);
+            const parser = new Parser(lexer);
+            const program = parser.parseProgram();
+
+            testParserErrors(parser);
+
+            assert.equal(program.statements.length, 1);
+
+            const [statement] = program.statements;
+
+            assert.ok(statement instanceof ExpressionStatement);
+
+            const {expression} = statement;
+
+            assert.ok(expression instanceof PrefixExpression);
+
+            assert.equal(expression.operator, test.operator);
+
+            testIntegerExpression(expression.right, test.value);
+        });
+    });
 });
 
 const testParserErrors = (parser: Parser) => {
@@ -142,7 +179,7 @@ const testParserErrors = (parser: Parser) => {
 	console.error(`parser encountered ${errorAmount} error(s)`)
 	parser.errors.forEach((err) => console.error(err));
 
-    assert.equal(errorAmount, 0);
+    assert.fail();
 }
 
 const testVarStatement = (statement: Statement, name: string, value: any) => {
@@ -156,4 +193,12 @@ const testVarStatement = (statement: Statement, name: string, value: any) => {
 	// if !testLiteralExpression(t, letStatement.Value, value) {
 	// 	return false
 	// }
-}
+};
+
+const testIntegerExpression = (expression: Expression, value: number) => {
+    assert.ok(expression instanceof IntegerExpression);
+
+	assert.equal(expression.value, value);
+
+	assert.equal(expression.literal(), String(value));
+};

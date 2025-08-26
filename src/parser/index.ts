@@ -2,13 +2,14 @@ import type {Expression, Statement} from "../ast";
 import ExpressionStatement from "../ast/expression_statement";
 import IdentifierExpression from "../ast/identifier_expression";
 import IntegerExpression from "../ast/integer_expression";
+import PrefixExpression from "../ast/prefix_expression";
 import Program from "../ast/program";
 import ReturnStatement from "../ast/return_statement";
 import VarStatement from "../ast/var_statement";
 import type Lexer from "../lexer";
 import {TokenType, type Token} from "../token";
 
-type PrefixParser = () => Expression;
+type PrefixParser = () => Expression|null;
 type InfixParser = (expression: Expression) => Expression;
 
 enum OperatorPrecedence {
@@ -43,6 +44,8 @@ export default class Parser {
         this.prefixParsers = {
             [TokenType.IDENTIFIER]: this.parseIdentifier.bind(this),
             [TokenType.INT]: this.parseInteger.bind(this),
+            [TokenType.BANG]: this.parsePrefixExpression.bind(this),
+            [TokenType.MINUS]: this.parsePrefixExpression.bind(this),
         };
         this.infixParsers = {};
 
@@ -83,11 +86,14 @@ export default class Parser {
         // defer untrace(trace("parseExpression"))
         const prefix = this.prefixParsers[this.currentToken.type];
         if (!prefix) {
-            // this.addInvalidPrefixError(this.currentToken.type);
+            this.addInvalidPrefixError(this.currentToken.type);
             return null;
         }
 
         const left = prefix();
+        if (!left) {
+            return null;
+        }
 
         // for parser.nextTok.Type != token.SEMICOLON && prec < parser.getNextPrecedence() {
         //     infix, ok := parser.infixParsers[parser.nextTok.Type]
@@ -164,6 +170,21 @@ export default class Parser {
         return new VarStatement(token, name/*, value*/);
     }
 
+    parsePrefixExpression(): PrefixExpression|null {
+        // defer untrace(trace("parsePrefixExpression"))
+
+        const token = this.currentToken;
+
+        this.nextToken();
+
+        const right = this.parseExpression(OperatorPrecedence.PREFIX);
+        if (!right) {
+            return null;
+        }
+
+        return new PrefixExpression(token, token.literal, right);
+    }
+
     expectPeekTokenType(tokenType: TokenType): boolean {
         if (this.peekToken.type !== tokenType) {
             this.addInvalidPeekTokenTypeError(this.peekToken, tokenType);
@@ -177,6 +198,10 @@ export default class Parser {
 
     addInvalidPeekTokenTypeError(received: Token, expected: TokenType) {
         this.errors.push(`invalid peek token type: received ${received}, expected ${expected}`);
+    }
+
+    addInvalidPrefixError(tokenType: TokenType) {
+        this.errors.push(`no prefix parse function for ${tokenType} found`);
     }
 
     parseProgram(): Program {
