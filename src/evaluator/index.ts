@@ -14,23 +14,26 @@ import BlockStatement from "../ast/block_statement";
 import IfExpression from "../ast/if_expression";
 import ReturnStatement from "../ast/return_statement";
 import ErrorObject from "../object/error_object";
+import VarStatement from "../ast/var_statement";
+import Environment from "../environment";
+import IdentifierExpression from "../ast/identifier_expression";
 
 export const TRUE = new BooleanObject(true);
 export const FALSE = new BooleanObject(false);
 export const NULL = new NullObject();
 
-export const evaluate = (node: Node): Object => {
+export const evaluate = (node: Node, environment: Environment): Object => {
     switch (true) {
     case node instanceof Program:
-        return evaluateProgram(node);
+        return evaluateProgram(node, environment);
     case node instanceof ExpressionStatement:
-        return evaluate(node.expression);
+        return evaluate(node.expression, environment);
     case node instanceof IntegerExpression:
         return new IntegerObject(node.value);
     case node instanceof BooleanExpression:
         return node.value ? TRUE : FALSE;
     case node instanceof PrefixExpression: {
-        const right = evaluate(node.right);
+        const right = evaluate(node.right, environment);
         if (isError(right)) {
             return right;
         }
@@ -38,12 +41,12 @@ export const evaluate = (node: Node): Object => {
         return evaluatePrefixExpression(node.operator, right);
     }
     case node instanceof InfixExpression: {
-        const left = evaluate(node.left);
+        const left = evaluate(node.left, environment);
         if (isError(left)) {
             return left;
         }
 
-        const right = evaluate(node.right);
+        const right = evaluate(node.right, environment);
         if (isError(right)) {
             return right;
         }
@@ -51,17 +54,29 @@ export const evaluate = (node: Node): Object => {
         return evaluateInfixExpression(node.operator, left, right);
     }
     case node instanceof BlockStatement:
-        return evaluateBlockStatement(node);
+        return evaluateBlockStatement(node, environment);
     case node instanceof IfExpression:
-        return evaluateIfExpression(node);
+        return evaluateIfExpression(node, environment);
     case node instanceof ReturnStatement: {
-        const value = evaluate(node.value);
+        const value = evaluate(node.value, environment);
         if (isError(value)) {
             return value;
         }
 
         return new ReturnObject(value);
     }
+    case node instanceof VarStatement: {
+        const value = evaluate(node.value, environment);
+        if (isError(value)) {
+            return value;
+        }
+
+        environment.set(node.name.value, value);
+
+        return value;
+    }
+    case node instanceof IdentifierExpression:
+        return evaluateIdentifierExpression(node, environment);
     default:
         return NULL;
     }
@@ -71,11 +86,11 @@ const isError = (object: Object): boolean => {
     return object.type() === ObjectType.ERROR;
 }
 
-const evaluateProgram = (program: Program): Object => {
+const evaluateProgram = (program: Program, environment: Environment): Object => {
     let result = NULL;
 
     for (let i = 0; i < program.statements.length; ++i) {
-        result = evaluate(program.statements[i]);
+        result = evaluate(program.statements[i], environment);
 
         if (result instanceof ReturnObject) {
             return result.value;
@@ -87,11 +102,11 @@ const evaluateProgram = (program: Program): Object => {
     return result;
 };
 
-const evaluateBlockStatement = (blockStatement: BlockStatement): Object => {
+const evaluateBlockStatement = (blockStatement: BlockStatement, environment: Environment): Object => {
     let result = NULL;
 
     for (let i = 0; i < blockStatement.statements.length; ++i) {
-        result = evaluate(blockStatement.statements[i]);
+        result = evaluate(blockStatement.statements[i], environment);
 
         if (result instanceof ReturnObject || result instanceof ErrorObject) {
             return result;
@@ -171,17 +186,26 @@ const evaluateIntegerInfixExpression = (operator: string, left: IntegerObject, r
     }
 };
 
-const evaluateIfExpression = (expression: IfExpression): Object => {
-    const condition = evaluate(expression.condition);
+const evaluateIfExpression = (expression: IfExpression, environment: Environment): Object => {
+    const condition = evaluate(expression.condition, environment);
     if (isError(condition)) {
         return condition;
     }
 
     if (isTruthy(condition)) {
-        return evaluate(expression.consequence);
+        return evaluate(expression.consequence, environment);
     } else if (expression.alternative) {
-        return evaluate(expression.alternative);
+        return evaluate(expression.alternative, environment);
     } else {
         return NULL;
     }
+};
+
+const evaluateIdentifierExpression = (expression: IdentifierExpression, environment: Environment): Object => {
+    const value = environment.get(expression.value);
+    if (!value) {
+        return new ErrorObject(`identifier not found: ${expression.value}`);
+    }
+
+    return value;
 };

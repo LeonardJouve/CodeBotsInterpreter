@@ -7,6 +7,7 @@ import {Object} from "../../src/object";
 import IntegerObject from "../../src/object/integer_object";
 import BooleanObject from "../../src/object/boolean_object";
 import ErrorObject from "../../src/object/error_object";
+import Environment from "../../src/environment";
 
 test("evaluator", (t) => {
     t.test("IntegerExpression should evaluate as expected", () => {
@@ -289,7 +290,7 @@ test("evaluator", (t) => {
             //     expected: 10,
             // },
             // {
-            //     input:    "var f = fn(x) {let result = x + 10; return result; return 10;}; f(10);",
+            //     input:    "var f = fn(x) {var result = x + 10; return result; return 10;}; f(10);",
             //     expected: 20,
             // },
         ];
@@ -333,10 +334,10 @@ test("evaluator", (t) => {
                 input:    "if (10 > 1) {if (10 > 1) {return true + false;} return 10;};",
                 expected: "unknown operation: BOOLEAN + BOOLEAN",
             },
-            // {
-            //     input:    "foo;",
-            //     expected: "identifier not found: foo",
-            // },
+            {
+                input:    "foo;",
+                expected: "identifier not found: foo",
+            },
             // {
             //     input:    "{\"name\": \"test\"}[fn(x) {return x;}];",
             //     expected: "object is not hashable: FUNCTION",
@@ -347,16 +348,41 @@ test("evaluator", (t) => {
             const evaluation = testEvaluate(test.input);
 		    testError(evaluation, test.expected);
         });
-    })
+    });
+    t.test("VarStatement should be parsed as expected", () => {
+        const tests = [
+            {
+                input:    "var x = 5; x;",
+                expected: 5,
+            },
+            {
+                input:    "var x = 5 * 5; x;",
+                expected: 25,
+            },
+            {
+                input:    "var x = 5; var y = x; y;",
+                expected: 5,
+            },
+            {
+                input:    "var x = 5; var y = x; var z = x + y + 5; z;",
+                expected: 15,
+            },
+        ];
+
+        tests.forEach((test) => {
+            const evaluation = testEvaluate(test.input);
+            testIntegerObject(evaluation, test.expected);
+        });
+    });
 });
 
 const testEvaluate = (input: string): Object => {
 	const lexer = new Lexer(input);
 	const parser = new Parser(lexer);
 	const program = parser.parseProgram();
-	// const env = object.NewEnvironement();
+	const environment = new Environment();
 
-	return evaluate(program/*, env*/);
+	return evaluate(program, environment);
 };
 
 const testIntegerObject = (object: Object, expected: number) => {
