@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert";
 import Lexer from "../../src/lexer";
 import Parser from "../../src/parser";
-import {evaluate} from "../../src/evaluator";
+import {evaluate, NULL} from "../../src/evaluator";
 import {Object} from "../../src/object";
 import Integer from "../../src/object/integer";
 import Boolean from "../../src/object/boolean";
@@ -211,6 +211,48 @@ test("evaluator", (t) => {
             testBooleanObject(evaluation, test.expected);
         });
     });
+    t.test("IfExpression should evaluate as expected", () => {
+        const tests = [
+        	{
+                input:    "if (true) {10}",
+                expected: 10,
+            },
+            {
+                input:    "if (false) {10}",
+                expected: null,
+            },
+            {
+                input:    "if (1) {10}",
+                expected: 10,
+            },
+            {
+                input:    "if (1 < 2) {10}",
+                expected: 10,
+            },
+            {
+                input:    "if (1 > 2) {10}",
+                expected: null,
+            },
+            {
+                input:    "if (1 < 2) {10} else {5}",
+                expected: 10,
+            },
+            {
+                input:    "if (1 > 2) {10} else {5}",
+                expected: 5,
+            },
+        ];
+
+        tests.forEach((test) => {
+            const evaluation = testEvaluate(test.input);
+            if (typeof test.expected !== "number") {
+                testNullObject(evaluation);
+
+                return;
+            }
+            testIntegerObject(evaluation, test.expected)
+        });
+    });
 });
 
 const testEvaluate = (input: string): Object => {
@@ -232,4 +274,8 @@ const testBooleanObject = (object: Object, expected: boolean) => {
 	assert.ok(object instanceof Boolean);
 
     assert.equal(object.value, expected);
+};
+
+const testNullObject = (object: Object) => {
+	assert.strictEqual(object, NULL);
 };

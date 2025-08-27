@@ -9,10 +9,12 @@ import BooleanExpression from "../ast/boolean_expression";
 import Boolean from "../object/boolean";
 import PrefixExpression from "../ast/prefix_expression";
 import InfixExpression from "../ast/infix_expression";
+import BlockStatement from "../ast/block_statement";
+import IfExpression from "../ast/if_expression";
 
-const TRUE = new Boolean(true);
-const FALSE = new Boolean(false);
-const NULL = new Null();
+export const TRUE = new Boolean(true);
+export const FALSE = new Boolean(false);
+export const NULL = new Null();
 
 export const evaluate = (node: Node): Object => {
     switch (true) {
@@ -33,6 +35,10 @@ export const evaluate = (node: Node): Object => {
         const right = evaluate(node.right);
         return evaluateInfixExpression(node.operator, left, right);
     }
+    case node instanceof BlockStatement:
+        return evaluateStatements(node.statements);
+    case node instanceof IfExpression:
+        return evaluateIfExpression(node);
     default:
         return NULL;
     }
@@ -53,15 +59,17 @@ const evaluatePrefixExpression = (operator: string, right: Object): Object => {
     }
 };
 
+const isTruthy = (object: Object): boolean => {
+    const isFalsy =
+        object === NULL ||
+        object === FALSE ||
+        (object instanceof Integer && !object.value);
+
+    return !isFalsy;
+};
+
 const evaluateBangOperator = (right: Object): Object => {
-    switch (true) {
-    case right === FALSE:
-    case right === NULL:
-    case right instanceof Integer && !right.value:
-        return TRUE;
-    default:
-        return FALSE;
-    }
+    return isTruthy(right) ? FALSE : TRUE;
 };
 
 const evaluateMinusOperator = (right: Object) => {
@@ -104,6 +112,18 @@ const evaluateIntegerInfixExpression = (operator: string, left: Integer, right: 
     case "!=":
         return left.value !== right.value ? TRUE : FALSE;
     default:
+        return NULL;
+    }
+};
+
+const evaluateIfExpression = (expression: IfExpression): Object => {
+    const condition = evaluate(expression.condition);
+
+    if (isTruthy(condition)) {
+        return evaluate(expression.consequence);
+    } else if (expression.alternative) {
+        return evaluate(expression.alternative);
+    } else {
         return NULL;
     }
 };
