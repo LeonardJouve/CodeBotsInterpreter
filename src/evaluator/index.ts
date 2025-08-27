@@ -2,7 +2,7 @@ import ExpressionStatement from "../ast/expression_statement";
 import IntegerExpression from "../ast/integer_expression";
 import Program from "../ast/program";
 import type {Node} from "../ast";
-import {type Object} from "../object";
+import {ObjectType, type Object} from "../object";
 import IntegerObject from "../object/integer_object";
 import NullObject from "../object/null_object";
 import BooleanExpression from "../ast/boolean_expression";
@@ -31,11 +31,23 @@ export const evaluate = (node: Node): Object => {
         return node.value ? TRUE : FALSE;
     case node instanceof PrefixExpression: {
         const right = evaluate(node.right);
+        if (isError(right)) {
+            return right;
+        }
+
         return evaluatePrefixExpression(node.operator, right);
     }
     case node instanceof InfixExpression: {
         const left = evaluate(node.left);
+        if (isError(left)) {
+            return left;
+        }
+
         const right = evaluate(node.right);
+        if (isError(right)) {
+            return right;
+        }
+
         return evaluateInfixExpression(node.operator, left, right);
     }
     case node instanceof BlockStatement:
@@ -44,12 +56,20 @@ export const evaluate = (node: Node): Object => {
         return evaluateIfExpression(node);
     case node instanceof ReturnStatement: {
         const value = evaluate(node.value);
+        if (isError(value)) {
+            return value;
+        }
+
         return new ReturnObject(value);
     }
     default:
         return NULL;
     }
 };
+
+const isError = (object: Object): boolean => {
+    return object.type() === ObjectType.ERROR;
+}
 
 const evaluateProgram = (program: Program): Object => {
     let result = NULL;
@@ -153,6 +173,9 @@ const evaluateIntegerInfixExpression = (operator: string, left: IntegerObject, r
 
 const evaluateIfExpression = (expression: IfExpression): Object => {
     const condition = evaluate(expression.condition);
+    if (isError(condition)) {
+        return condition;
+    }
 
     if (isTruthy(condition)) {
         return evaluate(expression.consequence);
