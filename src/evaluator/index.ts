@@ -27,6 +27,9 @@ import BuiltinObject from "../object/builtin_object";
 import ArrayExpression from "../ast/array_expression";
 import ArrayObject from "../object/array_object";
 import IndexExpression from "../ast/index_expression";
+import HashExpression from "../ast/hash_expression";
+import {isHashable, type HashPair} from "../object/hash_key";
+import HashObject from "../object/hash_object";
 
 export const TRUE = new BooleanObject(true);
 export const FALSE = new BooleanObject(false);
@@ -117,20 +120,16 @@ export const evaluate = (node: Node, environment: Environment): Object => {
         if (isError(left)) {
             return left;
         }
-        if (!(left instanceof ArrayObject)) {
-            return new ErrorObject("not an array");
-        }
 
         const index = evaluate(node.index, environment);
         if (isError(index)) {
             return index;
         }
-        if (!(index instanceof IntegerObject)) {
-            return new ErrorObject("not an integer");
-        }
 
         return evaluateIndexExpression(left, index);
     }
+    case node instanceof HashExpression:
+        return evaluateHashExpression(node, environment);
     default:
         return NULL;
     }
@@ -314,12 +313,60 @@ const evaluateCallExpression = (func: Object, args: Object[]): Object => {
     }
 };
 
-const evaluateIndexExpression = (left: ArrayObject, index: IntegerObject): Object => {
+const evaluateIndexExpression = (left: Object, index: Object): Object => {
+    switch (true) {
+    case left instanceof ArrayObject && index instanceof IntegerObject:
+        return evaluateArrayIndexExpression(left, index);
+    case left instanceof HashObject:
+        return evaluateHashIndexExpression(left, index);
+    default:
+        return new ErrorObject(`index operator not supported: ${left.type()}`);
+    }
+};
+
+const evaluateHashIndexExpression = (left: HashObject, index: Object): Object => {
+    if (!isHashable(index)) {
+        return new ErrorObject(`unusable as hash key: ${index.type()}`);
+    }
+
+    const pair = left.pairs.get(index.hashKey().toString());
+    if (!pair) {
+        return NULL;
+    }
+
+    return pair.value;
+};
+
+const evaluateArrayIndexExpression = (left: ArrayObject, index: IntegerObject): Object => {
     if (index.value < 0 || index.value >= left.elements.length) {
         return NULL;
     }
 
     return left.elements[index.value];
+};
+
+const evaluateHashExpression = (node: HashExpression, environment: Environment): Object => {
+    const pairs = new Map<string, HashPair>();
+
+    for (const [nodeKey, nodeValue] of node.pairs) {
+        const key = evaluate(nodeKey, environment);
+        if (isError(key)) {
+            return NULL;
+        }
+
+        if (!isHashable(key)) {
+            return new ErrorObject(`unusable as hash key: ${key.type()}`);
+        }
+
+        const value = evaluate(nodeValue, environment);
+        if (isError(value)) {
+            return NULL;
+        }
+
+        pairs.set(key.hashKey().toString(), {key, value});
+    }
+
+    return new HashObject(pairs);
 };
 
 const extendFunctionEnvironment = (func: FunctionObject, args: Object[]): Environment => {

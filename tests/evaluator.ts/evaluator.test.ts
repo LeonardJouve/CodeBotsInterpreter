@@ -10,7 +10,9 @@ import ErrorObject from "../../src/object/error_object";
 import FunctionObject from "../../src/object/function_object";
 import StringObject from "../../src/object/string_object";
 import ArrayObject from "../../src/object/array_object";
+import HashObject from "../../src/object/hash_object";
 import Environment from "../../src/environment";
+import type {HashKey} from "../../src/object/hash_key";
 
 test("evaluator", (t) => {
     t.test("IntegerExpression should evaluate as expected", () => {
@@ -341,10 +343,10 @@ test("evaluator", (t) => {
                 input:    "foo;",
                 expected: "identifier not found: foo",
             },
-            // {
-            //     input:    "{\"name\": \"test\"}[fn(x) {return x;}];",
-            //     expected: "object is not hashable: FUNCTION",
-            // },
+            {
+                input:    "{\"name\": \"test\"}[fn(x) {return x;}];",
+                expected: "unusable as hash key: FUNCTION",
+            },
         ];
 
         tests.forEach((test) => {
@@ -600,6 +602,74 @@ test("evaluator", (t) => {
             {
                 input:    "[1, 2, 3][-1];",
                 expected: null,
+            },
+        ];
+
+        tests.forEach((test) => {
+            const evaluation = testEvaluate(test.input);
+
+            if (test.expected === null) {
+                testNullObject(evaluation);
+                return;
+            }
+
+            testIntegerObject(evaluation, test.expected);
+        });
+    });
+    t.test("HashExpression should be evaluated as expected", () => {
+        const input = "var two = \"two\"; {\"one\": 10 - 9, two: 1 + 1, \"thr\" + \"ee\": 6 / 2, 4: 4, true: 5, false: 6};";
+        const expected = new Map<HashKey, number>([
+            [new StringObject("one").hashKey(), 1],
+            [new StringObject("two").hashKey(), 2],
+            [new StringObject("three").hashKey(), 3],
+            [new IntegerObject(4).hashKey(), 4],
+            [TRUE.hashKey(), 5],
+            [FALSE.hashKey(), 6],
+        ]);
+
+        const evaluation = testEvaluate(input);
+
+        assert.ok(evaluation instanceof HashObject);
+
+        assert.equal(evaluation.pairs.size, expected.size);
+
+        expected.forEach((expectedValue, expectedHash) => {
+            const element = evaluation.pairs.get(expectedHash.toString());
+
+            assert.ok(element);
+
+            testIntegerObject(element.value, expectedValue);
+        });
+    });
+    t.test("hash IndexExpression should be evaluated as expected", () => {
+        const tests = [
+            {
+                input:    "{\"foo\": 5}[\"foo\"];",
+                expected: 5,
+            },
+            {
+                input:    "{\"foo\": 5}[\"bar\"];",
+                expected: null,
+            },
+            {
+                input:    "var key = \"foo\"; {\"foo\": 5}[key];",
+                expected: 5,
+            },
+            {
+                input:    "{}[\"foo\"]",
+                expected: null,
+            },
+            {
+                input:    "{10: 5}[10]",
+                expected: 5,
+            },
+            {
+                input:    "{true: 5}[true]",
+                expected: 5,
+            },
+            {
+                input:    "{false: 5}[false]",
+                expected: 5,
             },
         ];
 

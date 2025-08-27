@@ -17,6 +17,7 @@ import ArrayExpression from "../ast/array_expression";
 import type Lexer from "../lexer";
 import {TokenType, type Token} from "../token";
 import IndexExpression from "../ast/index_expression";
+import HashExpression from "../ast/hash_expression";
 
 type PrefixParser = () => Expression|null;
 type InfixParser = (expression: Expression) => Expression|null;
@@ -76,6 +77,7 @@ export default class Parser {
             [TokenType.FUNCTION]: this.parseFunctionExpression.bind(this),
             [TokenType.STRING]: this.parseStringExpression.bind(this),
             [TokenType.LBRACKET]: this.parseArrayExpression.bind(this),
+            [TokenType.LBRACE]: this.parseHashExpression.bind(this),
         };
         this.infixParsers = {
             [TokenType.EQUAL]: this.parseInfixExpression.bind(this),
@@ -472,6 +474,45 @@ export default class Parser {
         }
 
         return new IndexExpression(token, left, index);
+    }
+
+    parseHashExpression(): HashExpression|null {
+        const token = this.currentToken;
+
+        const pairs = new Map<Expression, Expression>();
+
+        while (this.peekToken.type !== TokenType.RBRACE) {
+            this.nextToken();
+
+            const key = this.parseExpression(OperatorPrecedence.LOWEST);
+            if (!key) {
+                return null;
+            }
+
+            if (!this.expectPeekTokenType(TokenType.COLON)) {
+                return null;
+            }
+
+            this.nextToken();
+
+            const value = this.parseExpression(OperatorPrecedence.LOWEST);
+            if (!value) {
+                return null;
+            }
+
+            pairs.set(key, value);
+
+            // @ts-ignore
+            if (this.peekToken.type !== TokenType.RBRACE && !this.expectPeekTokenType(TokenType.COMMA)) {
+                return null;
+            }
+        }
+
+        if (!this.expectPeekTokenType(TokenType.RBRACE)) {
+            return null;
+        }
+
+        return new HashExpression(token, pairs);
     }
 }
 

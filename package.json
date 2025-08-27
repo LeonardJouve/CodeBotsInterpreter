@@ -21,8 +21,12 @@
         "start": "tsx -e \"import Interpreter from './src'; new Interpreter().repl();\""
     },
     "devDependencies": {
+        "@types/fnv-plus": "^1.3.2",
         "@types/node": "^24.3.0",
         "tsx": "^4.20.4",
         "typescript": "^5.9.2"
+    },
+    "dependencies": {
+        "fnv-plus": "^1.3.1"
     }
 }
