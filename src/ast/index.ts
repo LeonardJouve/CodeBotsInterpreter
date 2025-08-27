@@ -1,4 +1,4 @@
-interface Node {
+export interface Node {
     literal(): string;
 };
 

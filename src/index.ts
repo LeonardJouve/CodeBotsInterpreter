@@ -1,3 +1,4 @@
+import { evaluate } from "./evaluator";
 import Lexer from "./lexer";
 import Parser from "./parser";
 
@@ -28,7 +29,9 @@ export default class Interpreter {
                 return;
             }
 
-            process.stdout.write(`${program.toString()}\n`);
+            const evaluation = evaluate(program);
+
+            process.stdout.write(`${evaluation.inspect()}\n`);
 
             process.stdout.write(PROMPT);
         });
