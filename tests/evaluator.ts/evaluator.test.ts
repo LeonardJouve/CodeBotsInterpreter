@@ -174,6 +174,43 @@ test("evaluator", (t) => {
             testBooleanObject(evaluation, test.expected);
         });
     });
+    t.test("bang operator should evaluate as expected", () => {
+        const tests = [
+        	{
+                input:    "!true;",
+                expected: false,
+            },
+            {
+                input:    "!false;",
+                expected: true,
+            },
+            {
+                input:    "!5;",
+                expected: false,
+            },
+            {
+                input:    "!!true;",
+                expected: true,
+            },
+            {
+                input:    "!!false;",
+                expected: false,
+            },
+            {
+                input:    "!!5;",
+                expected: true,
+            },
+            {
+                input:    "!0",
+                expected: true,
+            },
+        ];
+
+        tests.forEach((test) => {
+            const evaluation = testEvaluate(test.input);
+            testBooleanObject(evaluation, test.expected);
+        });
+    });
 });
 
 const testEvaluate = (input: string): Object => {

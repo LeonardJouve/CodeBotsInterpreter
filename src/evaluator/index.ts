@@ -7,6 +7,7 @@ import Integer from "../object/integer";
 import Null from "../object/null";
 import BooleanExpression from "../ast/boolean_expression";
 import Boolean from "../object/boolean";
+import PrefixExpression from "../ast/prefix_expression";
 
 const TRUE = new Boolean(true);
 const FALSE = new Boolean(false);
@@ -15,19 +16,43 @@ const NULL = new Null();
 export const evaluate = (node: Node): Object => {
     switch (true) {
     case node instanceof Program:
-        return evalStatements(node.statements);
+        return evaluateStatements(node.statements);
     case node instanceof ExpressionStatement:
         return evaluate(node.expression);
     case node instanceof IntegerExpression:
         return new Integer(node.value);
     case node instanceof BooleanExpression:
         return node.value ? TRUE : FALSE;
+    case node instanceof PrefixExpression: {
+        const right = evaluate(node.right);
+        return evaluatePrefixExpression(node.operator, right);
+    }
     default:
         // TODO
         return NULL;
     }
 };
 
-const evalStatements = (statements: Statement[]): Object => {
+const evaluateStatements = (statements: Statement[]): Object => {
     return statements.reduce((_, statement) => evaluate(statement), NULL);
+};
+
+const evaluatePrefixExpression = (operator: string, right: Object): Object => {
+    switch (operator) {
+    case "!":
+        return evaluateBangOperatorExpression(right);
+    default:
+        return NULL;
+    }
+};
+
+const evaluateBangOperatorExpression = (right: Object): Object => {
+    switch (true) {
+    case right === FALSE:
+    case right === NULL:
+    case right instanceof Integer && !right.value:
+        return TRUE;
+    default:
+        return FALSE;
+    }
 };
