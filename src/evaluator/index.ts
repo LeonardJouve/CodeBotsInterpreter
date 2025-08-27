@@ -22,6 +22,8 @@ import FunctionObject from "../object/function_object";
 import CallExpression from "../ast/call_expression";
 import StringExpression from "../ast/string_expression";
 import StringObject from "../object/string_object";
+import {builtins} from "./builtins";
+import BuiltinObject from "../object/builtin_object";
 
 export const TRUE = new BooleanObject(true);
 export const FALSE = new BooleanObject(false);
@@ -88,9 +90,6 @@ export const evaluate = (node: Node, environment: Environment): Object => {
         const func = evaluate(node.func, environment);
         if (isError(func)) {
             return func;
-        }
-        if (!(func instanceof FunctionObject)) {
-            return new ErrorObject(`not a function: ${func.type()}`)
         }
 
         const args = evaluateExpressions(node.args, environment);
@@ -239,11 +238,16 @@ const evaluateIfExpression = (expression: IfExpression, environment: Environment
 
 const evaluateIdentifierExpression = (expression: IdentifierExpression, environment: Environment): Object => {
     const value = environment.get(expression.value);
-    if (!value) {
-        return new ErrorObject(`identifier not found: ${expression.value}`);
+    if (value) {
+        return value;
     }
 
-    return value;
+    const builtin = builtins[expression.value];
+    if (builtin) {
+        return builtin;
+    }
+
+    return new ErrorObject(`identifier not found: ${expression.value}`);
 };
 
 const evaluateExpressions = (expressions: Expression[], environment: Environment): Object[] => {
@@ -261,15 +265,24 @@ const evaluateExpressions = (expressions: Expression[], environment: Environment
     return result;
 };
 
-const evaluateCallExpression = (func: FunctionObject, args: Object[]): Object => {
-    if (func.parameters.length !== args.length) {
-        return new ErrorObject(`invalid argument amount: received ${args.length}, expected ${func.parameters.length}`)
+const evaluateCallExpression = (func: Object, args: Object[]): Object => {
+    switch (true) {
+    case func instanceof FunctionObject: {
+        if (func.parameters.length !== args.length) {
+            return new ErrorObject(`wrong arguments amount: received ${args.length}, expected ${func.parameters.length}`)
+        }
+
+        const extendedEnvironment = extendFunctionEnvironment(func, args);
+        const evaluation = evaluate(func.body, extendedEnvironment);
+
+        return unwrapReturnValue(evaluation);
+    }
+    case func instanceof BuiltinObject:
+        return func.func(...args);
+    default:
+        return new ErrorObject(`not a function: ${func.type()}`)
     }
 
-    const extendedEnvironment = extendFunctionEnvironment(func, args);
-    const evaluation = evaluate(func.body, extendedEnvironment);
-
-    return unwrapReturnValue(evaluation);
 };
 
 const extendFunctionEnvironment = (func: FunctionObject, args: Object[]): Environment => {

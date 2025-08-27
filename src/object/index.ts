@@ -6,9 +6,12 @@ export enum ObjectType {
     ERROR = "ERROR",
     FUNCTION = "FUNCTION",
     STRING = "STRING",
+    BUILTIN = "BUILTIN",
 };
 
 export interface Object {
     type(): ObjectType;
     inspect(): string;
 };
+
+export type BuiltinFunction = (...args: Object[]) => Object;
