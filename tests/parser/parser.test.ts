@@ -14,6 +14,7 @@ import BooleanExpression from "../../src/ast/boolean_expression";
 import IfExpression from "../../src/ast/if_expression";
 import FunctionExpression from "../../src/ast/function_expression";
 import CallExpression from "../../src/ast/call_expression";
+import StringExpression from "../../src/ast/string_expression";
 
 test("parser", (t) => {
     t.test("VarStatement should be parsed as expected", () => {
@@ -363,6 +364,27 @@ test("parser", (t) => {
         testLiteralExpression(expression.args[0], 1);
         testInfixExpression(expression.args[1], "+", 2, 3);
         testInfixExpression(expression.args[2], "*", 4, 5);
+    });
+    t.test("StringExpression should be parsed as expected", () => {
+        const input = "\"hello world\";";
+
+        const lexer = new Lexer(input);
+        const parser = new Parser(lexer);
+        const program = parser.parseProgram();
+
+        testParserErrors(parser);
+
+        assert.equal(program.statements.length, 1);
+
+        const [statement] = program.statements;
+
+        assert.ok(statement instanceof ExpressionStatement);
+
+        const {expression} = statement;
+
+        assert.ok(expression instanceof StringExpression);
+
+        assert.equal(expression.value, "hello world");
     });
     t.test("should parse function parameters as expected", () => {
         const tests = [

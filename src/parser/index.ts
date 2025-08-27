@@ -11,6 +11,7 @@ import IntegerExpression from "../ast/integer_expression";
 import PrefixExpression from "../ast/prefix_expression";
 import Program from "../ast/program";
 import ReturnStatement from "../ast/return_statement";
+import StringExpression from "../ast/string_expression";
 import VarStatement from "../ast/var_statement";
 import type Lexer from "../lexer";
 import {TokenType, type Token} from "../token";
@@ -69,6 +70,7 @@ export default class Parser {
             [TokenType.LPAREN]: this.parseGroupedExpression.bind(this),
             [TokenType.IF]: this.parseIfExpression.bind(this),
             [TokenType.FUNCTION]: this.parseFunctionExpression.bind(this),
+            [TokenType.STRING]: this.parseStringExpression.bind(this),
         };
         this.infixParsers = {
             [TokenType.EQUAL]: this.parseInfixExpression.bind(this),
@@ -434,4 +436,9 @@ export default class Parser {
 
         return program;
     }
+
+    parseStringExpression(): StringExpression {
+        return new StringExpression(this.currentToken, this.currentToken.literal);
+    }
 }
+

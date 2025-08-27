@@ -8,6 +8,7 @@ import IntegerObject from "../../src/object/integer_object";
 import BooleanObject from "../../src/object/boolean_object";
 import ErrorObject from "../../src/object/error_object";
 import FunctionObject from "../../src/object/function_object";
+import StringObject from "../../src/object/string_object";
 import Environment from "../../src/environment";
 
 test("evaluator", (t) => {
@@ -327,10 +328,10 @@ test("evaluator", (t) => {
                 input:    "if (10 > 1) {return true + false;};",
                 expected: "unknown operation: BOOLEAN + BOOLEAN",
             },
-            // {
-            //     input:    "\"a\" - \"b\";",
-            //     expected: "unknown operation: STRING - STRING",
-            // },
+            {
+                input:    "\"a\" - \"b\";",
+                expected: "unknown operation: STRING - STRING",
+            },
             {
                 input:    "if (10 > 1) {if (10 > 1) {return true + false;} return 10;};",
                 expected: "unknown operation: BOOLEAN + BOOLEAN",
@@ -424,6 +425,24 @@ test("evaluator", (t) => {
             const evaluation = testEvaluate(test.input);
             testIntegerObject(evaluation, test.expected);
         });
+    });
+    t.test("StringExpression should be evaluated as expected", () => {
+        const input = "\"hello world\"";
+
+        const evaluation = testEvaluate(input);
+
+        assert.ok(evaluation instanceof StringObject);
+
+        assert.equal(evaluation.value, "hello world");
+    });
+    t.test("StringExpression should concatenate as expected", () => {
+        const input = "\"hello\" + \" \" + \"world\"";
+
+        const evaluation = testEvaluate(input);
+
+        assert.ok(evaluation instanceof StringObject);
+
+        assert.equal(evaluation.value, "hello world");
     });
     t.test("closures should be evaluated as expected", () => {
         const input = "var newAdder = fn(x) {return fn(y) {return x + y;};}; var x = 10; var y = 10; var addTwo = newAdder(2); addTwo(2);";

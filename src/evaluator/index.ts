@@ -20,6 +20,8 @@ import IdentifierExpression from "../ast/identifier_expression";
 import FunctionExpression from "../ast/function_expression";
 import FunctionObject from "../object/function_object";
 import CallExpression from "../ast/call_expression";
+import StringExpression from "../ast/string_expression";
+import StringObject from "../object/string_object";
 
 export const TRUE = new BooleanObject(true);
 export const FALSE = new BooleanObject(false);
@@ -98,6 +100,8 @@ export const evaluate = (node: Node, environment: Environment): Object => {
 
         return evaluateCallExpression(func, args);
     }
+    case node instanceof StringExpression:
+        return new StringObject(node.value);
     default:
         return NULL;
     }
@@ -144,7 +148,7 @@ const evaluatePrefixExpression = (operator: string, right: Object): Object => {
     case "-":
         return evaluateMinusOperator(right);
     default:
-        return new ErrorObject(`unknown operator: ${operator}${right.type}`);
+        return new ErrorObject(`unknown operation: ${operator}${right.type}`);
     }
 };
 
@@ -171,10 +175,12 @@ const evaluateMinusOperator = (right: Object) => {
 
 const evaluateInfixExpression = (operator: string, left: Object, right: Object): Object => {
     switch (true) {
-    case left instanceof IntegerObject && right instanceof IntegerObject:
-        return evaluateIntegerInfixExpression(operator, left, right);
     case left.type() !== right.type():
         return new ErrorObject(`type mismatch: ${left.type()} ${operator} ${right.type()}`)
+    case left instanceof IntegerObject && right instanceof IntegerObject:
+        return evaluateIntegerInfixExpression(operator, left, right);
+    case left instanceof StringObject && right instanceof StringObject:
+        return evaluateStringInfixExpression(operator, left, right);
     case operator === "==":
         return left === right ? TRUE : FALSE;
     case operator === "!=":
@@ -203,7 +209,16 @@ const evaluateIntegerInfixExpression = (operator: string, left: IntegerObject, r
     case "!=":
         return left.value !== right.value ? TRUE : FALSE;
     default:
-        return new ErrorObject(`unknown operator: ${left.type()} ${operator} ${right.type()}`);
+        return new ErrorObject(`unknown operation: ${left.type()} ${operator} ${right.type()}`);
+    }
+};
+
+const evaluateStringInfixExpression = (operator: string, left: StringObject, right: StringObject): Object => {
+    switch (operator) {
+    case "+":
+        return new StringObject(left.value + right.value);
+    default:
+        return new ErrorObject(`unknown operation: ${left.type()} ${operator} ${right.type()}`);
     }
 };
 

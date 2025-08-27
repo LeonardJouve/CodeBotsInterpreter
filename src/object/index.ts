@@ -5,6 +5,7 @@ export enum ObjectType {
     RETURN = "RETURN",
     ERROR = "ERROR",
     FUNCTION = "FUNCTION",
+    STRING = "STRING",
 };
 
 export interface Object {
