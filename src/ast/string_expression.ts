@@ -1,7 +1,7 @@
-import type {Statement} from ".";
+import type {Expression} from ".";
 import type {Token} from "../token";
 
-export default class StringExpression implements Statement {
+export default class StringExpression implements Expression {
     public token: Token;
     public value: string;
 

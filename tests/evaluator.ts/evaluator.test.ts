@@ -9,6 +9,7 @@ import BooleanObject from "../../src/object/boolean_object";
 import ErrorObject from "../../src/object/error_object";
 import FunctionObject from "../../src/object/function_object";
 import StringObject from "../../src/object/string_object";
+import ArrayObject from "../../src/object/array_object";
 import Environment from "../../src/environment";
 
 test("evaluator", (t) => {
@@ -472,58 +473,54 @@ test("evaluator", (t) => {
                 input:    "len(\"one\", \"two\")",
                 expected: "wrong arguments amount: received 2, expected 1",
             },
-            // {
-            //     input:    "len([1, 2, 3])",
-            //     expected: 3,
-            // },
-            // {
-            //     input:    "len([])",
-            //     expected: 0,
-            // },
-            // {
-            //     input:    "first([1, 2, 3])",
-            //     expected: 1,
-            // },
-            // {
-            //     input:    "first([])",
-            //     expected: nil,
-            // },
-            // {
-            //     input:    "first(1)",
-            //     expected: "unsupported argument for builtin function first: INTEGER",
-            // },
-            // {
-            //     input:    "last([1, 2, 3])",
-            //     expected: 3,
-            // },
-            // {
-            //     input:    "last([])",
-            //     expected: nil,
-            // },
-            // {
-            //     input:    "last(1)",
-            //     expected: "unsupported argument for builtin function last: INTEGER",
-            // },
-            // {
-            //     input:    "rest([1, 2, 3])",
-            //     expected: []int{2, 3},
-            // },
-            // {
-            //     input:    "rest([])",
-            //     expected: nil,
-            // },
-            // {
-            //     input:    "push([], 1)",
-            //     expected: []int{1},
-            // },
-            // {
-            //     input:    "push(1, 1)",
-            //     expected: "unsupported argument for builtin function push: INTEGER",
-            // },
-            // {
-            //     input:    "puts(1, true, \"foo\", [2, false, \"bar\"], {\"one\": \"1\", 2: 2, true: true}, fn(x) {return x;})",
-            //     expected: nil,
-            // },
+            {
+                input:    "len([1, 2, 3])",
+                expected: 3,
+            },
+            {
+                input:    "len([])",
+                expected: 0,
+            },
+            {
+                input:    "first([1, 2, 3])",
+                expected: 1,
+            },
+            {
+                input:    "first([])",
+                expected: null,
+            },
+            {
+                input:    "first(1)",
+                expected: "unsupported argument type for builtin function first: INTEGER",
+            },
+            {
+                input:    "last([1, 2, 3])",
+                expected: 3,
+            },
+            {
+                input:    "last([])",
+                expected: null,
+            },
+            {
+                input:    "last(1)",
+                expected: "unsupported argument type for builtin function last: INTEGER",
+            },
+            {
+                input:    "rest([1, 2, 3])",
+                expected: [2, 3],
+            },
+            {
+                input:    "rest([])",
+                expected: null,
+            },
+            {
+                input:    "push([], 1)",
+                expected: [1],
+            },
+            {
+                input:    "push(1, 1)",
+                expected: "unsupported argument type for builtin function push: INTEGER",
+            },
         ];
 
         tests.forEach((test) => {
@@ -536,27 +533,85 @@ test("evaluator", (t) => {
             case typeof test.expected === "string":
                 testError(evaluation, test.expected);
                 break;
-            // case []int:
-            //     array, ok := eval.(*object.Array)
-            //     if !ok {
-            //         t.Errorf("[Test] Invalid object type: received %T, expected *object.Array", eval)
-            //         continue
-            //     }
-
-            //     expectedElementAmount := len(array.Value)
-            //     if elementAmount := len(array.Value); elementAmount != expectedElementAmount {
-            //         t.Errorf("[Test] Invalid array element amount: received %d, expected %d", elementAmount, expectedElementAmount)
-            //         continue
-            //     }
-
-            //     for i, expectedElement := range expected {
-            //         testIntegerObject(t, array.Value[i], int64(expectedElement))
-            //     }
-            // break
-            // case nil:
-            //     testNullObject(t, eval)
-            // break
+            case test.expected === null:
+                testNullObject(evaluation);
+                break;
+            case typeof test.expected === "object":
+                assert.ok(evaluation instanceof ArrayObject);
+                assert.equal(evaluation.elements.length, test.expected.length);
+                test.expected.forEach((element, i) => {
+                    testIntegerObject(evaluation.elements[i], element);
+                });
+                break;
             }
+        });
+    });
+    t.test("ArrayExpression should be evaluated as expected", () => {
+        const input = "[1, 2 * 2, 3 + 3]";
+
+        const evaluation = testEvaluate(input);
+
+        assert.ok(evaluation instanceof ArrayObject);
+
+        assert.equal(evaluation.elements.length, 3);
+
+        testIntegerObject(evaluation.elements[0], 1);
+        testIntegerObject(evaluation.elements[1], 4);
+        testIntegerObject(evaluation.elements[2], 6);
+    });
+    t.test("IndexExpression should be evaluated as expected", () => {
+        const tests = [
+            {
+                input:    "[1, 2, 3][0];",
+                expected: 1,
+            },
+            {
+                input:    "[1, 2, 3][1];",
+                expected: 2,
+            },
+            {
+                input:    "[1, 2, 3][2];",
+                expected: 3,
+            },
+            {
+                input:    "var x = 0; [1][x];",
+                expected: 1,
+            },
+            {
+                input:    "[1, 2, 3][1 + 1];",
+                expected: 3,
+            },
+            {
+                input:    "var x = [1, 2, 3]; x[2];",
+                expected: 3,
+            },
+            {
+                input:    "var x = [1, 2, 3]; x[0] + x[1] + x[2];",
+                expected: 6,
+            },
+            {
+                input:    "var x = [1, 2, 3]; var y = x[0]; x[y];",
+                expected: 2,
+            },
+            {
+                input:    "[1, 2, 3][3];",
+                expected: null,
+            },
+            {
+                input:    "[1, 2, 3][-1];",
+                expected: null,
+            },
+        ];
+
+        tests.forEach((test) => {
+            const evaluation = testEvaluate(test.input);
+
+            if (test.expected === null) {
+                testNullObject(evaluation);
+                return;
+            }
+
+            testIntegerObject(evaluation, test.expected);
         });
     });
 });

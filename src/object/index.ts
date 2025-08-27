@@ -7,6 +7,7 @@ export enum ObjectType {
     FUNCTION = "FUNCTION",
     STRING = "STRING",
     BUILTIN = "BUILTIN",
+    ARRAY = "ARRAY",
 };
 
 export interface Object {

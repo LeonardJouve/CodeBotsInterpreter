@@ -24,6 +24,9 @@ import StringExpression from "../ast/string_expression";
 import StringObject from "../object/string_object";
 import {builtins} from "./builtins";
 import BuiltinObject from "../object/builtin_object";
+import ArrayExpression from "../ast/array_expression";
+import ArrayObject from "../object/array_object";
+import IndexExpression from "../ast/index_expression";
 
 export const TRUE = new BooleanObject(true);
 export const FALSE = new BooleanObject(false);
@@ -101,6 +104,33 @@ export const evaluate = (node: Node, environment: Environment): Object => {
     }
     case node instanceof StringExpression:
         return new StringObject(node.value);
+    case node instanceof ArrayExpression: {
+        const elements = evaluateExpressions(node.elements, environment);
+        if (elements.length === 1 && isError(elements[0])) {
+            return elements[0];
+        }
+
+        return new ArrayObject(elements);
+    }
+    case node instanceof IndexExpression: {
+        const left = evaluate(node.left, environment);
+        if (isError(left)) {
+            return left;
+        }
+        if (!(left instanceof ArrayObject)) {
+            return new ErrorObject("not an array");
+        }
+
+        const index = evaluate(node.index, environment);
+        if (isError(index)) {
+            return index;
+        }
+        if (!(index instanceof IntegerObject)) {
+            return new ErrorObject("not an integer");
+        }
+
+        return evaluateIndexExpression(left, index);
+    }
     default:
         return NULL;
     }
@@ -282,7 +312,14 @@ const evaluateCallExpression = (func: Object, args: Object[]): Object => {
     default:
         return new ErrorObject(`not a function: ${func.type()}`)
     }
+};
 
+const evaluateIndexExpression = (left: ArrayObject, index: IntegerObject): Object => {
+    if (index.value < 0 || index.value >= left.elements.length) {
+        return NULL;
+    }
+
+    return left.elements[index.value];
 };
 
 const extendFunctionEnvironment = (func: FunctionObject, args: Object[]): Environment => {
