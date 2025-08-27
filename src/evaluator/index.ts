@@ -2,7 +2,7 @@ import ExpressionStatement from "../ast/expression_statement";
 import IntegerExpression from "../ast/integer_expression";
 import Program from "../ast/program";
 import type {Node, Statement} from "../ast";
-import type {Object} from "../object";
+import {type Object} from "../object";
 import Integer from "../object/integer";
 import Null from "../object/null";
 import BooleanExpression from "../ast/boolean_expression";
@@ -40,13 +40,15 @@ const evaluateStatements = (statements: Statement[]): Object => {
 const evaluatePrefixExpression = (operator: string, right: Object): Object => {
     switch (operator) {
     case "!":
-        return evaluateBangOperatorExpression(right);
+        return evaluateBangOperator(right);
+    case "-":
+        return evaluateMinusOperator(right);
     default:
         return NULL;
     }
 };
 
-const evaluateBangOperatorExpression = (right: Object): Object => {
+const evaluateBangOperator = (right: Object): Object => {
     switch (true) {
     case right === FALSE:
     case right === NULL:
@@ -55,4 +57,12 @@ const evaluateBangOperatorExpression = (right: Object): Object => {
     default:
         return FALSE;
     }
+};
+
+const evaluateMinusOperator = (right: Object) => {
+    if (!(right instanceof Integer)) {
+        return NULL;
+    }
+
+    return new Integer(-right.value);
 };
