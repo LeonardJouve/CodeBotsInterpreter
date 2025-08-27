@@ -8,6 +8,7 @@ import Null from "../object/null";
 import BooleanExpression from "../ast/boolean_expression";
 import Boolean from "../object/boolean";
 import PrefixExpression from "../ast/prefix_expression";
+import InfixExpression from "../ast/infix_expression";
 
 const TRUE = new Boolean(true);
 const FALSE = new Boolean(false);
@@ -27,8 +28,12 @@ export const evaluate = (node: Node): Object => {
         const right = evaluate(node.right);
         return evaluatePrefixExpression(node.operator, right);
     }
+    case node instanceof InfixExpression: {
+        const left = evaluate(node.left);
+        const right = evaluate(node.right);
+        return evaluateInfixExpression(node.operator, left, right);
+    }
     default:
-        // TODO
         return NULL;
     }
 };
@@ -65,4 +70,40 @@ const evaluateMinusOperator = (right: Object) => {
     }
 
     return new Integer(-right.value);
+};
+
+const evaluateInfixExpression = (operator: string, left: Object, right: Object): Object => {
+    switch (true) {
+    case left instanceof Integer && right instanceof Integer:
+        return evaluateIntegerInfixExpression(operator, left, right);
+    case operator === "==":
+        return left === right ? TRUE : FALSE;
+    case operator === "!=":
+        return left !== right ? TRUE : FALSE;
+    default:
+        return NULL;
+    }
+};
+
+const evaluateIntegerInfixExpression = (operator: string, left: Integer, right: Integer): Object => {
+    switch (operator) {
+    case "+":
+        return new Integer(left.value + right.value);
+    case "-":
+        return new Integer(left.value - right.value);
+    case "*":
+        return new Integer(left.value * right.value);
+    case "/":
+        return new Integer(left.value / right.value);
+    case "<":
+        return left.value < right.value ? TRUE : FALSE;
+    case ">":
+        return left.value > right.value ? TRUE : FALSE;
+    case "==":
+        return left.value === right.value ? TRUE : FALSE;
+    case "!=":
+        return left.value !== right.value ? TRUE : FALSE;
+    default:
+        return NULL;
+    }
 };
