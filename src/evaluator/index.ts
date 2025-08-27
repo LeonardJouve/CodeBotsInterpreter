@@ -1,7 +1,7 @@
 import ExpressionStatement from "../ast/expression_statement";
 import IntegerExpression from "../ast/integer_expression";
 import Program from "../ast/program";
-import type {Node} from "../ast";
+import type {Expression, Node} from "../ast";
 import {ObjectType, type Object} from "../object";
 import IntegerObject from "../object/integer_object";
 import NullObject from "../object/null_object";
@@ -17,6 +17,9 @@ import ErrorObject from "../object/error_object";
 import VarStatement from "../ast/var_statement";
 import Environment from "../environment";
 import IdentifierExpression from "../ast/identifier_expression";
+import FunctionExpression from "../ast/function_expression";
+import FunctionObject from "../object/function_object";
+import CallExpression from "../ast/call_expression";
 
 export const TRUE = new BooleanObject(true);
 export const FALSE = new BooleanObject(false);
@@ -77,6 +80,24 @@ export const evaluate = (node: Node, environment: Environment): Object => {
     }
     case node instanceof IdentifierExpression:
         return evaluateIdentifierExpression(node, environment);
+    case node instanceof FunctionExpression:
+        return new FunctionObject(node.parameters, node.body, environment);
+    case node instanceof CallExpression: {
+        const func = evaluate(node.func, environment);
+        if (isError(func)) {
+            return func;
+        }
+        if (!(func instanceof FunctionObject)) {
+            return new ErrorObject(`not a function: ${func.type()}`)
+        }
+
+        const args = evaluateExpressions(node.args, environment);
+        if (args.length === 1 && isError(args[0])) {
+            return args[0];
+        }
+
+        return evaluateCallExpression(func, args);
+    }
     default:
         return NULL;
     }
@@ -208,4 +229,48 @@ const evaluateIdentifierExpression = (expression: IdentifierExpression, environm
     }
 
     return value;
+};
+
+const evaluateExpressions = (expressions: Expression[], environment: Environment): Object[] => {
+    const result = [];
+
+    for (let i = 0; i < expressions.length; ++i) {
+        const evaluation = evaluate(expressions[i], environment);
+        if (isError(evaluation)) {
+            return [evaluation];
+        }
+
+        result.push(evaluation);
+    }
+
+    return result;
+};
+
+const evaluateCallExpression = (func: FunctionObject, args: Object[]): Object => {
+    if (func.parameters.length !== args.length) {
+        return new ErrorObject(`invalid argument amount: received ${args.length}, expected ${func.parameters.length}`)
+    }
+
+    const extendedEnvironment = extendFunctionEnvironment(func, args);
+    const evaluation = evaluate(func.body, extendedEnvironment);
+
+    return unwrapReturnValue(evaluation);
+};
+
+const extendFunctionEnvironment = (func: FunctionObject, args: Object[]): Environment => {
+    const extendedEnvironment = new Environment(func.environment);
+
+    func.parameters.forEach((parameter, i) => {
+        extendedEnvironment.set(parameter.value, args[i]);
+    });
+
+    return extendedEnvironment;
+};
+
+const unwrapReturnValue = (object: Object): Object => {
+    if (object instanceof ReturnObject) {
+        return object.value;
+    }
+
+    return object;
 };

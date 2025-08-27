@@ -7,6 +7,7 @@ import {Object} from "../../src/object";
 import IntegerObject from "../../src/object/integer_object";
 import BooleanObject from "../../src/object/boolean_object";
 import ErrorObject from "../../src/object/error_object";
+import FunctionObject from "../../src/object/function_object";
 import Environment from "../../src/environment";
 
 test("evaluator", (t) => {
@@ -285,14 +286,14 @@ test("evaluator", (t) => {
                 input:    "if (10 > 1) {if (10 > 1) {return 10;}return 1;}",
                 expected: 10,
             },
-            // {
-            //     input:    "var f = fn(x) {return x; x + 10;};f(10);",
-            //     expected: 10,
-            // },
-            // {
-            //     input:    "var f = fn(x) {var result = x + 10; return result; return 10;}; f(10);",
-            //     expected: 20,
-            // },
+            {
+                input:    "var f = fn(x) {return x; x + 10;};f(10);",
+                expected: 10,
+            },
+            {
+                input:    "var f = fn(x) {var result = x + 10; return result; return 10;}; f(10);",
+                expected: 20,
+            },
         ];
 
         tests.forEach((test) => {
@@ -373,6 +374,62 @@ test("evaluator", (t) => {
             const evaluation = testEvaluate(test.input);
             testIntegerObject(evaluation, test.expected);
         });
+    });
+    t.test("FunctionExpression should be evaluated as expected", () => {
+        const input = "fn(x) {return x + 2;}";
+        const evaluation = testEvaluate(input);
+
+        assert.ok(evaluation instanceof FunctionObject);
+
+        assert.equal(evaluation.parameters.length, 1);
+
+        const [parameter] = evaluation.parameters;
+        assert.equal(parameter.toString(), "x");
+
+        assert.equal(evaluation.body.toString(), "return (x + 2);");
+    });
+    t.test("CallExpression should be evaluated as expected", () => {
+        const tests = [
+            {
+                input:    "var identify = fn(x) {x;}; identify(5);",
+                expected: 5,
+            },
+            {
+                input:    "var identify = fn(x) {return x;}; identify(5);",
+                expected: 5,
+            },
+            {
+                input:    "var double = fn(x) {x * 2;}; double(5);",
+                expected: 10,
+            },
+            {
+                input:    "var double = fn(x) {return x * 2;}; double(5);",
+                expected: 10,
+            },
+            {
+                input:    "var add = fn(x, y) {x + y;}; add(5, 5);",
+                expected: 10,
+            },
+            {
+                input:    "var add = fn(x, y) {x + y;}; add(5 + 5, add(5, 5));",
+                expected: 20,
+            },
+            {
+                input:    "fn(x) {x;}(5);",
+                expected: 5,
+            },
+        ];
+
+        tests.forEach((test) => {
+            const evaluation = testEvaluate(test.input);
+            testIntegerObject(evaluation, test.expected);
+        });
+    });
+    t.test("closures should be evaluated as expected", () => {
+        const input = "var newAdder = fn(x) {return fn(y) {return x + y;};}; var x = 10; var y = 10; var addTwo = newAdder(2); addTwo(2);";
+
+        const evaluation = testEvaluate(input);
+        testIntegerObject(evaluation, 4);
     });
 });
 
