@@ -2,10 +2,11 @@ import test from "node:test";
 import assert from "node:assert";
 import Lexer from "../../src/lexer";
 import Parser from "../../src/parser";
-import {evaluate, NULL} from "../../src/evaluator";
+import {evaluate, FALSE, NULL, TRUE} from "../../src/evaluator";
 import {Object} from "../../src/object";
-import Integer from "../../src/object/integer";
-import Boolean from "../../src/object/boolean";
+import IntegerObject from "../../src/object/integer_object";
+import BooleanObject from "../../src/object/boolean_object";
+import ErrorObject from "../../src/object/error_object";
 
 test("evaluator", (t) => {
     t.test("IntegerExpression should evaluate as expected", () => {
@@ -253,6 +254,100 @@ test("evaluator", (t) => {
             testIntegerObject(evaluation, test.expected)
         });
     });
+    t.test("ReturnStatement should evaluate as expected", () => {
+        const tests = [
+            {
+                input:    "return 10;",
+                expected: 10,
+            },
+            {
+                input:    "return 10; 9;",
+                expected: 10,
+            },
+            {
+                input:    "return 2 * 5; 9;",
+                expected: 10,
+            },
+            {
+                input:    "9; return 2 * 5; 9;",
+                expected: 10,
+            },
+            {
+                input:    "9; return 2 * 5; return 9;",
+                expected: 10,
+            },
+            {
+                input:    "if (true) {if (true) {return 1;} return 2}",
+                expected: 1,
+            },
+            {
+                input:    "if (10 > 1) {if (10 > 1) {return 10;}return 1;}",
+                expected: 10,
+            },
+            // {
+            //     input:    "var f = fn(x) {return x; x + 10;};f(10);",
+            //     expected: 10,
+            // },
+            // {
+            //     input:    "var f = fn(x) {let result = x + 10; return result; return 10;}; f(10);",
+            //     expected: 20,
+            // },
+        ];
+
+        tests.forEach((test) => {
+            const evaluation = testEvaluate(test.input);
+            testIntegerObject(evaluation, test.expected);
+        });
+    });
+    t.test("evaluate should return ErrorObject as expected", () => {
+        const tests = [
+            {
+                input:    "5 + true;",
+                expected: "type mismatch: INTEGER + BOOLEAN",
+            },
+            {
+                input:    "5 + true; 5;",
+                expected: "type mismatch: INTEGER + BOOLEAN",
+            },
+            {
+                input:    "-true;",
+                expected: "unknown operation: -BOOLEAN",
+            },
+            {
+                input:    "true + false;",
+                expected: "unknown operation: BOOLEAN + BOOLEAN",
+            },
+            {
+                input:    "5; true + false; 5;",
+                expected: "unknown operation: BOOLEAN + BOOLEAN",
+            },
+            {
+                input:    "if (10 > 1) {return true + false;};",
+                expected: "unknown operation: BOOLEAN + BOOLEAN",
+            },
+            // {
+            //     input:    "\"a\" - \"b\";",
+            //     expected: "unknown operation: STRING - STRING",
+            // },
+            {
+                input:    "if (10 > 1) {if (10 > 1) {return true + false;} return 10;};",
+                expected: "unknown operation: BOOLEAN + BOOLEAN",
+            },
+            // {
+            //     input:    "foo;",
+            //     expected: "identifier not found: foo",
+            // },
+            // {
+            //     input:    "{\"name\": \"test\"}[fn(x) {return x;}];",
+            //     expected: "object is not hashable: FUNCTION",
+            // },
+        ];
+
+        tests.forEach((test) => {
+            const evaluation = testEvaluate(test.input);
+		    testError(evaluation, test.expected);
+        });
+    })
 });
 
 const testEvaluate = (input: string): Object => {
@@ -265,17 +360,23 @@ const testEvaluate = (input: string): Object => {
 };
 
 const testIntegerObject = (object: Object, expected: number) => {
-	assert.ok(object instanceof Integer);
+	assert.ok(object instanceof IntegerObject);
 
     assert.equal(object.value, expected);
 };
 
 const testBooleanObject = (object: Object, expected: boolean) => {
-	assert.ok(object instanceof Boolean);
+	assert.ok(object instanceof BooleanObject);
 
-    assert.equal(object.value, expected);
+    assert.strictEqual(object, expected ? TRUE : FALSE);
 };
 
 const testNullObject = (object: Object) => {
 	assert.strictEqual(object, NULL);
+};
+
+const testError = (object: Object, expected: string) => {
+	assert.ok(object instanceof ErrorObject);
+
+	assert.equal(object.message, expected);
 };

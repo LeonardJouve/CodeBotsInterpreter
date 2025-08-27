@@ -1,29 +1,32 @@
 import ExpressionStatement from "../ast/expression_statement";
 import IntegerExpression from "../ast/integer_expression";
 import Program from "../ast/program";
-import type {Node, Statement} from "../ast";
+import type {Node} from "../ast";
 import {type Object} from "../object";
-import Integer from "../object/integer";
-import Null from "../object/null";
+import IntegerObject from "../object/integer_object";
+import NullObject from "../object/null_object";
 import BooleanExpression from "../ast/boolean_expression";
-import Boolean from "../object/boolean";
+import BooleanObject from "../object/boolean_object";
+import ReturnObject from "../object/return_object";
 import PrefixExpression from "../ast/prefix_expression";
 import InfixExpression from "../ast/infix_expression";
 import BlockStatement from "../ast/block_statement";
 import IfExpression from "../ast/if_expression";
+import ReturnStatement from "../ast/return_statement";
+import ErrorObject from "../object/error_object";
 
-export const TRUE = new Boolean(true);
-export const FALSE = new Boolean(false);
-export const NULL = new Null();
+export const TRUE = new BooleanObject(true);
+export const FALSE = new BooleanObject(false);
+export const NULL = new NullObject();
 
 export const evaluate = (node: Node): Object => {
     switch (true) {
     case node instanceof Program:
-        return evaluateStatements(node.statements);
+        return evaluateProgram(node);
     case node instanceof ExpressionStatement:
         return evaluate(node.expression);
     case node instanceof IntegerExpression:
-        return new Integer(node.value);
+        return new IntegerObject(node.value);
     case node instanceof BooleanExpression:
         return node.value ? TRUE : FALSE;
     case node instanceof PrefixExpression: {
@@ -36,16 +39,46 @@ export const evaluate = (node: Node): Object => {
         return evaluateInfixExpression(node.operator, left, right);
     }
     case node instanceof BlockStatement:
-        return evaluateStatements(node.statements);
+        return evaluateBlockStatement(node);
     case node instanceof IfExpression:
         return evaluateIfExpression(node);
+    case node instanceof ReturnStatement: {
+        const value = evaluate(node.value);
+        return new ReturnObject(value);
+    }
     default:
         return NULL;
     }
 };
 
-const evaluateStatements = (statements: Statement[]): Object => {
-    return statements.reduce((_, statement) => evaluate(statement), NULL);
+const evaluateProgram = (program: Program): Object => {
+    let result = NULL;
+
+    for (let i = 0; i < program.statements.length; ++i) {
+        result = evaluate(program.statements[i]);
+
+        if (result instanceof ReturnObject) {
+            return result.value;
+        } else if (result instanceof ErrorObject) {
+            return result;
+        }
+    }
+
+    return result;
+};
+
+const evaluateBlockStatement = (blockStatement: BlockStatement): Object => {
+    let result = NULL;
+
+    for (let i = 0; i < blockStatement.statements.length; ++i) {
+        result = evaluate(blockStatement.statements[i]);
+
+        if (result instanceof ReturnObject || result instanceof ErrorObject) {
+            return result;
+        }
+    }
+
+    return result;
 };
 
 const evaluatePrefixExpression = (operator: string, right: Object): Object => {
@@ -55,7 +88,7 @@ const evaluatePrefixExpression = (operator: string, right: Object): Object => {
     case "-":
         return evaluateMinusOperator(right);
     default:
-        return NULL;
+        return new ErrorObject(`unknown operator: ${operator}${right.type}`);
     }
 };
 
@@ -63,7 +96,7 @@ const isTruthy = (object: Object): boolean => {
     const isFalsy =
         object === NULL ||
         object === FALSE ||
-        (object instanceof Integer && !object.value);
+        (object instanceof IntegerObject && !object.value);
 
     return !isFalsy;
 };
@@ -73,36 +106,38 @@ const evaluateBangOperator = (right: Object): Object => {
 };
 
 const evaluateMinusOperator = (right: Object) => {
-    if (!(right instanceof Integer)) {
-        return NULL;
+    if (!(right instanceof IntegerObject)) {
+        return new ErrorObject(`unknown operation: -${right.type()}`);
     }
 
-    return new Integer(-right.value);
+    return new IntegerObject(-right.value);
 };
 
 const evaluateInfixExpression = (operator: string, left: Object, right: Object): Object => {
     switch (true) {
-    case left instanceof Integer && right instanceof Integer:
+    case left instanceof IntegerObject && right instanceof IntegerObject:
         return evaluateIntegerInfixExpression(operator, left, right);
+    case left.type() !== right.type():
+        return new ErrorObject(`type mismatch: ${left.type()} ${operator} ${right.type()}`)
     case operator === "==":
         return left === right ? TRUE : FALSE;
     case operator === "!=":
         return left !== right ? TRUE : FALSE;
     default:
-        return NULL;
+        return new ErrorObject(`unknown operation: ${left.type()} ${operator} ${right.type()}`);
     }
 };
 
-const evaluateIntegerInfixExpression = (operator: string, left: Integer, right: Integer): Object => {
+const evaluateIntegerInfixExpression = (operator: string, left: IntegerObject, right: IntegerObject): Object => {
     switch (operator) {
     case "+":
-        return new Integer(left.value + right.value);
+        return new IntegerObject(left.value + right.value);
     case "-":
-        return new Integer(left.value - right.value);
+        return new IntegerObject(left.value - right.value);
     case "*":
-        return new Integer(left.value * right.value);
+        return new IntegerObject(left.value * right.value);
     case "/":
-        return new Integer(left.value / right.value);
+        return new IntegerObject(left.value / right.value);
     case "<":
         return left.value < right.value ? TRUE : FALSE;
     case ">":
@@ -112,7 +147,7 @@ const evaluateIntegerInfixExpression = (operator: string, left: Integer, right: 
     case "!=":
         return left.value !== right.value ? TRUE : FALSE;
     default:
-        return NULL;
+        return new ErrorObject(`unknown operator: ${left.type()} ${operator} ${right.type()}`);
     }
 };
 

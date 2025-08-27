@@ -1,6 +1,6 @@
 import {ObjectType, type Object} from ".";
 
-export default class Integer implements Object {
+export default class IntegerObject implements Object {
     public value: number;
 
     constructor(value: number) {

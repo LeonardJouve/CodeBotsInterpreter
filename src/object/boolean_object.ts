@@ -1,6 +1,6 @@
 import {ObjectType, type Object} from ".";
 
-export default class Boolean implements Object {
+export default class BooleanObject implements Object {
     public value: boolean;
 
     constructor(value: boolean) {

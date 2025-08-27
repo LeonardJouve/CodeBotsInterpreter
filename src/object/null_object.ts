@@ -1,6 +1,6 @@
 import {ObjectType, type Object} from ".";
 
-export default class Null implements Object {
+export default class NullObject implements Object {
     constructor() {}
 
     type(): ObjectType {
