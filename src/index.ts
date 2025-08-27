@@ -1,11 +1,14 @@
 import Lexer from "./lexer";
 import Parser from "./parser";
+import {evaluate} from "./evaluator";
+import Environment from "./environment";
 
 export default class Interpreter {
     constructor() {}
 
     repl() {
         const PROMPT = ">> ";
+        const environment = new Environment();
 
         process.stdout.write(PROMPT);
 
@@ -28,7 +31,9 @@ export default class Interpreter {
                 return;
             }
 
-            process.stdout.write(`${program.toString()}\n`);
+            const evaluation = evaluate(program, environment);
+
+            process.stdout.write(`${evaluation.inspect()}\n`);
 
             process.stdout.write(PROMPT);
         });

@@ -352,7 +352,7 @@ export default class Parser {
 
         this.nextToken();
 
-        if (this.peekToken.type === expectedCloseTokenType) {
+        if (this.currentToken.type === expectedCloseTokenType) {
             return expressions;
         }
 
@@ -367,7 +367,7 @@ export default class Parser {
             this.nextToken();
             this.nextToken();
 
-            let expression = this.parseExpression(OperatorPrecedence.LOWEST);
+            expression = this.parseExpression(OperatorPrecedence.LOWEST);
             if (!expression) {
                 return null;
             }
