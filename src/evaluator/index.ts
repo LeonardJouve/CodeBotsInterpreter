@@ -5,6 +5,12 @@ import type {Node, Statement} from "../ast";
 import type {Object} from "../object";
 import Integer from "../object/integer";
 import Null from "../object/null";
+import BooleanExpression from "../ast/boolean_expression";
+import Boolean from "../object/boolean";
+
+const TRUE = new Boolean(true);
+const FALSE = new Boolean(false);
+const NULL = new Null();
 
 export const evaluate = (node: Node): Object => {
     switch (true) {
@@ -14,12 +20,14 @@ export const evaluate = (node: Node): Object => {
         return evaluate(node.expression);
     case node instanceof IntegerExpression:
         return new Integer(node.value);
+    case node instanceof BooleanExpression:
+        return node.value ? TRUE : FALSE;
     default:
         // TODO
-        return new Null();
+        return NULL;
     }
 };
 
 const evalStatements = (statements: Statement[]): Object => {
-    return statements.reduce((_, statement) => evaluate(statement), new Null());
+    return statements.reduce((_, statement) => evaluate(statement), NULL);
 };

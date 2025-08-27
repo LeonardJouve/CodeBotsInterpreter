@@ -5,6 +5,7 @@ import Parser from "../../src/parser";
 import {evaluate} from "../../src/evaluator";
 import {Object} from "../../src/object";
 import Integer from "../../src/object/integer";
+import Boolean from "../../src/object/boolean";
 
 test("evaluator", (t) => {
     t.test("IntegerExpression should evaluate as expected", () => {
@@ -72,13 +73,110 @@ test("evaluator", (t) => {
         ];
 
         tests.forEach((test) => {
-            const evaluation = testEval(test.input);
+            const evaluation = testEvaluate(test.input);
             testIntegerObject(evaluation, test.expected);
+        });
+    });
+    t.test("BooleanExpression should evaluate as expected", () => {
+        const tests = [
+            {
+                input:    "true;",
+                expected: true,
+            },
+            {
+                input:    "false;",
+                expected: false,
+            },
+            // {
+            //     input:    "1 < 2;",
+            //     expected: true,
+            // },
+            // {
+            //     input:    "1 > 2;",
+            //     expected: false,
+            // },
+            // {
+            //     input:    "1 < 1;",
+            //     expected: false,
+            // },
+            // {
+            //     input:    "1 > 1;",
+            //     expected: false,
+            // },
+            // {
+            //     input:    "1 == 1;",
+            //     expected: true,
+            // },
+            // {
+            //     input:    "1 != 1;",
+            //     expected: false,
+            // },
+            // {
+            //     input:    "1 == 2;",
+            //     expected: false,
+            // },
+            // {
+            //     input:    "1 != 2;",
+            //     expected: true,
+            // },
+            // {
+            //     input:    "true == true",
+            //     expected: true,
+            // },
+            // {
+            //     input:    "false == false",
+            //     expected: true,
+            // },
+            // {
+            //     input:    "true == false",
+            //     expected: false,
+            // },
+            // {
+            //     input:    "false == true",
+            //     expected: false,
+            // },
+            // {
+            //     input:    "true != true",
+            //     expected: false,
+            // },
+            // {
+            //     input:    "false != false",
+            //     expected: false,
+            // },
+            // {
+            //     input:    "true != false",
+            //     expected: true,
+            // },
+            // {
+            //     input:    "false != true",
+            //     expected: true,
+            // },
+            // {
+            //     input:    "1 < 2 == true",
+            //     expected: true,
+            // },
+            // {
+            //     input:    "1 < 2 == false",
+            //     expected: false,
+            // },
+            // {
+            //     input:    "1 > 2 == false",
+            //     expected: true,
+            // },
+            // {
+            //     input:    "1 > 2 == true",
+            //     expected: false,
+            // },
+        ];
+
+        tests.forEach((test) => {
+            const evaluation = testEvaluate(test.input);
+            testBooleanObject(evaluation, test.expected);
         });
     });
 });
 
-const testEval = (input: string): Object => {
+const testEvaluate = (input: string): Object => {
 	const lexer = new Lexer(input);
 	const parser = new Parser(lexer);
 	const program = parser.parseProgram();
@@ -89,6 +187,12 @@ const testEval = (input: string): Object => {
 
 const testIntegerObject = (object: Object, expected: number) => {
 	assert.ok(object instanceof Integer);
+
+    assert.equal(object.value, expected);
+};
+
+const testBooleanObject = (object: Object, expected: boolean) => {
+	assert.ok(object instanceof Boolean);
 
     assert.equal(object.value, expected);
 };
