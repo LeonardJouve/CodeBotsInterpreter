@@ -1,11 +1,33 @@
 import Lexer from "./lexer";
 import Parser from "./parser";
-import {evaluate} from "./evaluator";
+import {evaluate, isError} from "./evaluator";
 import Environment from "./environment";
 import Builtins from "./evaluator/builtins";
+import BuiltinObject from "./object/builtin_object";
 
 export default class Interpreter {
     constructor() {}
+
+    evaluate(code: string, customBuiltins?: Record<string, BuiltinObject>): string|null {
+        const lexer = new Lexer(code);
+        const parser = new Parser(lexer);
+        const program = parser.parseProgram();
+
+        if (parser.errors.length) {
+            return "PARSER ERROR: " + parser.errors.join("\n");
+        }
+
+        const builtins = new Builtins(customBuiltins);
+        const environment = new Environment();
+
+        const evaluation = evaluate(program, environment, builtins);
+
+        if (isError(evaluation)) {
+            return evaluation.inspect();
+        }
+
+        return null;
+    }
 
     repl() {
         const PROMPT = ">> ";

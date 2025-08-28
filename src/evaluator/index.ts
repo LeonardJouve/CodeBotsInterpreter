@@ -138,7 +138,7 @@ export const evaluate = (node: Node, environment: Environment, builtins: Builtin
     }
 };
 
-const isError = (object: Object): boolean => {
+export const isError = (object: Object): boolean => {
     return object.type() === ObjectType.ERROR;
 }
 
