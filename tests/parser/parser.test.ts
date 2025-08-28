@@ -14,6 +14,10 @@ import BooleanExpression from "../../src/ast/boolean_expression";
 import IfExpression from "../../src/ast/if_expression";
 import FunctionExpression from "../../src/ast/function_expression";
 import CallExpression from "../../src/ast/call_expression";
+import StringExpression from "../../src/ast/string_expression";
+import ArrayExpression from "../../src/ast/array_expression";
+import IndexExpression from "../../src/ast/index_expression";
+import HashExpression from "../../src/ast/hash_expression";
 
 test("parser", (t) => {
     t.test("VarStatement should be parsed as expected", () => {
@@ -364,6 +368,27 @@ test("parser", (t) => {
         testInfixExpression(expression.args[1], "+", 2, 3);
         testInfixExpression(expression.args[2], "*", 4, 5);
     });
+    t.test("StringExpression should be parsed as expected", () => {
+        const input = "\"hello world\";";
+
+        const lexer = new Lexer(input);
+        const parser = new Parser(lexer);
+        const program = parser.parseProgram();
+
+        testParserErrors(parser);
+
+        assert.equal(program.statements.length, 1);
+
+        const [statement] = program.statements;
+
+        assert.ok(statement instanceof ExpressionStatement);
+
+        const {expression} = statement;
+
+        assert.ok(expression instanceof StringExpression);
+
+        assert.equal(expression.value, "hello world");
+    });
     t.test("should parse function parameters as expected", () => {
         const tests = [
             {
@@ -505,14 +530,14 @@ test("parser", (t) => {
                 input:    "add(a + b + c * d / f + g)",
                 expected: "add((((a + b) + ((c * d) / f)) + g))",
             },
-            // {
-            //     input:    "a * [1, 2, 3, 4][b * c] * d",
-            //     expected: "((a * ([1, 2, 3, 4][(b * c)])) * d)",
-            // },
-            // {
-            //     input:    "add(a * b[2], b[1], 2 * [1, 2][1])",
-            //     expected: "add((a * (b[2])), (b[1]), (2 * ([1, 2][1])))",
-            // },
+            {
+                input:    "a * [1, 2, 3, 4][b * c] * d",
+                expected: "((a * ([1, 2, 3, 4][(b * c)])) * d)",
+            },
+            {
+                input:    "add(a * b[2], b[1], 2 * [1, 2][1])",
+                expected: "add((a * (b[2])), (b[1]), (2 * ([1, 2][1])))",
+            },
         ];
 
         tests.forEach((test) => {
@@ -524,7 +549,152 @@ test("parser", (t) => {
 
             assert.equal(program.toString(), test.expected);
         });
-    })
+    });
+    t.test("ArrayExpression should be parsed as expected", () => {
+        const input = "[1, 2 * 2, 3 + 3]";
+
+        const lexer = new Lexer(input);
+        const parser = new Parser(lexer);
+        const program = parser.parseProgram();
+
+        testParserErrors(parser);
+
+        assert.equal(program.statements.length, 1);
+
+        const [statement] = program.statements;
+
+        assert.ok(statement instanceof ExpressionStatement);
+
+        const {expression} = statement;
+
+        assert.ok(expression instanceof ArrayExpression);
+
+        assert.equal(expression.elements.length, 3);
+
+        testIntegerExpression(expression.elements[0], 1);
+        testInfixExpression(expression.elements[1], "*", 2, 2);
+        testInfixExpression(expression.elements[2], "+", 3, 3);
+    });
+    t.test("IndexExpression should be parsed as expected", () => {
+        const input = "array[1 + 1]";
+
+        const lexer = new Lexer(input);
+        const parser = new Parser(lexer);
+        const program = parser.parseProgram();
+
+        testParserErrors(parser);
+
+        assert.equal(program.statements.length, 1);
+
+        const [statement] = program.statements;
+
+        assert.ok(statement instanceof ExpressionStatement);
+
+        const {expression} = statement;
+
+        assert.ok(expression instanceof IndexExpression);
+
+        testIdentifierExpression(expression.left, "array");
+        testInfixExpression(expression.index, "+", 1, 1);
+    });
+    t.test("HashExpression with string keys should be parsed as expected", () => {
+        const input = "{\"one\": 1, \"two\": 2, \"three\": 3};";
+        const expected = {
+            "one": 1,
+            "two": 2,
+            "three": 3,
+        };
+
+        const lexer = new Lexer(input);
+        const parser = new Parser(lexer);
+        const program = parser.parseProgram();
+
+        testParserErrors(parser);
+
+        assert.equal(program.statements.length, 1);
+
+        const [statement] = program.statements;
+
+        assert.ok(statement instanceof ExpressionStatement);
+
+        const {expression} = statement;
+
+        assert.ok(expression instanceof HashExpression);
+
+        const pairs = Array.from(expression.pairs.entries());
+
+        assert.equal(pairs.length, Object.keys(expected).length);
+
+        Object.entries(expected).forEach(([key, value], i) => {
+            const pair = pairs[i];
+
+            assert.ok(pair[0] instanceof StringExpression);
+
+            assert.equal(pair[0].value, key);
+
+            testIntegerExpression(pair[1], value);
+        });
+    });
+    t.test("empty HashExpression should be parsed as expected", () => {
+        const input = "{};";
+
+        const lexer = new Lexer(input);
+        const parser = new Parser(lexer);
+        const program = parser.parseProgram();
+
+        testParserErrors(parser);
+
+        assert.equal(program.statements.length, 1);
+
+        const [statement] = program.statements;
+
+        assert.ok(statement instanceof ExpressionStatement);
+
+        const {expression} = statement;
+
+        assert.ok(expression instanceof HashExpression);
+
+        assert.equal(expression.pairs.size, 0);
+    });
+    t.test("HashExpression with expressions should be parsed as expected", () => {
+        const input = "{\"one\": 0 + 1, \"two\": 10 - 8, \"three\": 15 / 5};";
+
+        const expected = {
+            "one": (expression: Expression) => testInfixExpression(expression, "+", 0, 1),
+            "two": (expression: Expression) => testInfixExpression(expression, "-", 10, 8),
+            "three": (expression: Expression) => testInfixExpression(expression, "/", 15, 5),
+        };
+
+        const lexer = new Lexer(input);
+        const parser = new Parser(lexer);
+        const program = parser.parseProgram();
+
+        testParserErrors(parser);
+
+        assert.equal(program.statements.length, 1);
+
+        const [statement] = program.statements;
+
+        assert.ok(statement instanceof ExpressionStatement);
+
+        const {expression} = statement;
+
+        assert.ok(expression instanceof HashExpression);
+
+        const pairs = Array.from(expression.pairs.entries());
+
+        assert.equal(pairs.length, Object.keys(expected).length);
+
+        Object.entries(expected).forEach(([key, test], i) => {
+            const pair = pairs[i];
+
+            assert.ok(pair[0] instanceof StringExpression);
+
+            assert.equal(pair[0].value, key);
+
+            test(pair[1]);
+        });
+    });
 });
 
 const testParserErrors = (parser: Parser) => {

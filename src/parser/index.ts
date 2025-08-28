@@ -11,9 +11,13 @@ import IntegerExpression from "../ast/integer_expression";
 import PrefixExpression from "../ast/prefix_expression";
 import Program from "../ast/program";
 import ReturnStatement from "../ast/return_statement";
+import StringExpression from "../ast/string_expression";
 import VarStatement from "../ast/var_statement";
+import ArrayExpression from "../ast/array_expression";
 import type Lexer from "../lexer";
 import {TokenType, type Token} from "../token";
+import IndexExpression from "../ast/index_expression";
+import HashExpression from "../ast/hash_expression";
 
 type PrefixParser = () => Expression|null;
 type InfixParser = (expression: Expression) => Expression|null;
@@ -26,6 +30,7 @@ enum OperatorPrecedence {
     PRODUCT,
     PREFIX,
     CALL,
+    INDEX,
 };
 
 const precedence: Partial<Record<TokenType, OperatorPrecedence>> = {
@@ -38,6 +43,7 @@ const precedence: Partial<Record<TokenType, OperatorPrecedence>> = {
     [TokenType.SLASH]: OperatorPrecedence.PRODUCT,
     [TokenType.ASTERISX]: OperatorPrecedence.PRODUCT,
     [TokenType.LPAREN]: OperatorPrecedence.CALL,
+    [TokenType.LBRACKET]: OperatorPrecedence.INDEX,
 };
 
 export default class Parser {
@@ -69,6 +75,9 @@ export default class Parser {
             [TokenType.LPAREN]: this.parseGroupedExpression.bind(this),
             [TokenType.IF]: this.parseIfExpression.bind(this),
             [TokenType.FUNCTION]: this.parseFunctionExpression.bind(this),
+            [TokenType.STRING]: this.parseStringExpression.bind(this),
+            [TokenType.LBRACKET]: this.parseArrayExpression.bind(this),
+            [TokenType.LBRACE]: this.parseHashExpression.bind(this),
         };
         this.infixParsers = {
             [TokenType.EQUAL]: this.parseInfixExpression.bind(this),
@@ -80,7 +89,7 @@ export default class Parser {
             [TokenType.ASTERISX]: this.parseInfixExpression.bind(this),
             [TokenType.SLASH]: this.parseInfixExpression.bind(this),
             [TokenType.LPAREN]: this.parseCallExpression.bind(this),
-            // [TokenType.LBRACKET]:  this.parseIndexExpression.bind(this),
+            [TokenType.LBRACKET]:  this.parseIndexExpression.bind(this),
         };
 
         this.nextToken();
@@ -434,4 +443,76 @@ export default class Parser {
 
         return program;
     }
+
+    parseStringExpression(): StringExpression {
+        return new StringExpression(this.currentToken, this.currentToken.literal);
+    }
+
+    parseArrayExpression(): ArrayExpression|null {
+        const token = this.currentToken;
+
+        const elements = this.parseExpressionList(TokenType.RBRACKET);
+        if (!elements) {
+            return null;
+        }
+
+        return new ArrayExpression(token, elements);
+    }
+
+    parseIndexExpression(left: Expression): IndexExpression|null {
+        const token = this.currentToken;
+
+        this.nextToken();
+
+        const index = this.parseExpression(OperatorPrecedence.LOWEST);
+        if (!index) {
+            return null;
+        }
+
+        if (!this.expectPeekTokenType(TokenType.RBRACKET)) {
+            return null;
+        }
+
+        return new IndexExpression(token, left, index);
+    }
+
+    parseHashExpression(): HashExpression|null {
+        const token = this.currentToken;
+
+        const pairs = new Map<Expression, Expression>();
+
+        while (this.peekToken.type !== TokenType.RBRACE) {
+            this.nextToken();
+
+            const key = this.parseExpression(OperatorPrecedence.LOWEST);
+            if (!key) {
+                return null;
+            }
+
+            if (!this.expectPeekTokenType(TokenType.COLON)) {
+                return null;
+            }
+
+            this.nextToken();
+
+            const value = this.parseExpression(OperatorPrecedence.LOWEST);
+            if (!value) {
+                return null;
+            }
+
+            pairs.set(key, value);
+
+            // @ts-ignore
+            if (this.peekToken.type !== TokenType.RBRACE && !this.expectPeekTokenType(TokenType.COMMA)) {
+                return null;
+            }
+        }
+
+        if (!this.expectPeekTokenType(TokenType.RBRACE)) {
+            return null;
+        }
+
+        return new HashExpression(token, pairs);
+    }
 }
+

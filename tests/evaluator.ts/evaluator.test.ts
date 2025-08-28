@@ -8,7 +8,11 @@ import IntegerObject from "../../src/object/integer_object";
 import BooleanObject from "../../src/object/boolean_object";
 import ErrorObject from "../../src/object/error_object";
 import FunctionObject from "../../src/object/function_object";
+import StringObject from "../../src/object/string_object";
+import ArrayObject from "../../src/object/array_object";
+import HashObject from "../../src/object/hash_object";
 import Environment from "../../src/environment";
+import type {HashKey} from "../../src/object/hash_key";
 
 test("evaluator", (t) => {
     t.test("IntegerExpression should evaluate as expected", () => {
@@ -327,10 +331,10 @@ test("evaluator", (t) => {
                 input:    "if (10 > 1) {return true + false;};",
                 expected: "unknown operation: BOOLEAN + BOOLEAN",
             },
-            // {
-            //     input:    "\"a\" - \"b\";",
-            //     expected: "unknown operation: STRING - STRING",
-            // },
+            {
+                input:    "\"a\" - \"b\";",
+                expected: "unknown operation: STRING - STRING",
+            },
             {
                 input:    "if (10 > 1) {if (10 > 1) {return true + false;} return 10;};",
                 expected: "unknown operation: BOOLEAN + BOOLEAN",
@@ -339,10 +343,10 @@ test("evaluator", (t) => {
                 input:    "foo;",
                 expected: "identifier not found: foo",
             },
-            // {
-            //     input:    "{\"name\": \"test\"}[fn(x) {return x;}];",
-            //     expected: "object is not hashable: FUNCTION",
-            // },
+            {
+                input:    "{\"name\": \"test\"}[fn(x) {return x;}];",
+                expected: "unusable as hash key: FUNCTION",
+            },
         ];
 
         tests.forEach((test) => {
@@ -425,11 +429,260 @@ test("evaluator", (t) => {
             testIntegerObject(evaluation, test.expected);
         });
     });
+    t.test("StringExpression should be evaluated as expected", () => {
+        const input = "\"hello world\"";
+
+        const evaluation = testEvaluate(input);
+
+        assert.ok(evaluation instanceof StringObject);
+
+        assert.equal(evaluation.value, "hello world");
+    });
+    t.test("StringExpression should concatenate as expected", () => {
+        const input = "\"hello\" + \" \" + \"world\"";
+
+        const evaluation = testEvaluate(input);
+
+        assert.ok(evaluation instanceof StringObject);
+
+        assert.equal(evaluation.value, "hello world");
+    });
     t.test("closures should be evaluated as expected", () => {
         const input = "var newAdder = fn(x) {return fn(y) {return x + y;};}; var x = 10; var y = 10; var addTwo = newAdder(2); addTwo(2);";
 
         const evaluation = testEvaluate(input);
         testIntegerObject(evaluation, 4);
+    });
+    t.test("builtin functions should be evaluated as expected", () => {
+        const tests = [
+            {
+                input:    "len(\"\")",
+                expected: 0,
+            },
+            {
+                input:    "len(\"four\")",
+                expected: 4,
+            },
+            {
+                input:    "len(\"hello world\")",
+                expected: 11,
+            },
+            {
+                input:    "len(1)",
+                expected: "unsupported argument type for builtin function len: INTEGER",
+            },
+            {
+                input:    "len(\"one\", \"two\")",
+                expected: "wrong arguments amount: received 2, expected 1",
+            },
+            {
+                input:    "len([1, 2, 3])",
+                expected: 3,
+            },
+            {
+                input:    "len([])",
+                expected: 0,
+            },
+            {
+                input:    "first([1, 2, 3])",
+                expected: 1,
+            },
+            {
+                input:    "first([])",
+                expected: null,
+            },
+            {
+                input:    "first(1)",
+                expected: "unsupported argument type for builtin function first: INTEGER",
+            },
+            {
+                input:    "last([1, 2, 3])",
+                expected: 3,
+            },
+            {
+                input:    "last([])",
+                expected: null,
+            },
+            {
+                input:    "last(1)",
+                expected: "unsupported argument type for builtin function last: INTEGER",
+            },
+            {
+                input:    "rest([1, 2, 3])",
+                expected: [2, 3],
+            },
+            {
+                input:    "rest([])",
+                expected: null,
+            },
+            {
+                input:    "push([], 1)",
+                expected: [1],
+            },
+            {
+                input:    "push(1, 1)",
+                expected: "unsupported argument type for builtin function push: INTEGER",
+            },
+        ];
+
+        tests.forEach((test) => {
+            const evaluation = testEvaluate(test.input);
+
+            switch (true) {
+            case typeof test.expected === "number":
+                testIntegerObject(evaluation, test.expected);
+                break;
+            case typeof test.expected === "string":
+                testError(evaluation, test.expected);
+                break;
+            case test.expected === null:
+                testNullObject(evaluation);
+                break;
+            case typeof test.expected === "object":
+                assert.ok(evaluation instanceof ArrayObject);
+                assert.equal(evaluation.elements.length, test.expected.length);
+                test.expected.forEach((element, i) => {
+                    testIntegerObject(evaluation.elements[i], element);
+                });
+                break;
+            }
+        });
+    });
+    t.test("ArrayExpression should be evaluated as expected", () => {
+        const input = "[1, 2 * 2, 3 + 3]";
+
+        const evaluation = testEvaluate(input);
+
+        assert.ok(evaluation instanceof ArrayObject);
+
+        assert.equal(evaluation.elements.length, 3);
+
+        testIntegerObject(evaluation.elements[0], 1);
+        testIntegerObject(evaluation.elements[1], 4);
+        testIntegerObject(evaluation.elements[2], 6);
+    });
+    t.test("IndexExpression should be evaluated as expected", () => {
+        const tests = [
+            {
+                input:    "[1, 2, 3][0];",
+                expected: 1,
+            },
+            {
+                input:    "[1, 2, 3][1];",
+                expected: 2,
+            },
+            {
+                input:    "[1, 2, 3][2];",
+                expected: 3,
+            },
+            {
+                input:    "var x = 0; [1][x];",
+                expected: 1,
+            },
+            {
+                input:    "[1, 2, 3][1 + 1];",
+                expected: 3,
+            },
+            {
+                input:    "var x = [1, 2, 3]; x[2];",
+                expected: 3,
+            },
+            {
+                input:    "var x = [1, 2, 3]; x[0] + x[1] + x[2];",
+                expected: 6,
+            },
+            {
+                input:    "var x = [1, 2, 3]; var y = x[0]; x[y];",
+                expected: 2,
+            },
+            {
+                input:    "[1, 2, 3][3];",
+                expected: null,
+            },
+            {
+                input:    "[1, 2, 3][-1];",
+                expected: null,
+            },
+        ];
+
+        tests.forEach((test) => {
+            const evaluation = testEvaluate(test.input);
+
+            if (test.expected === null) {
+                testNullObject(evaluation);
+                return;
+            }
+
+            testIntegerObject(evaluation, test.expected);
+        });
+    });
+    t.test("HashExpression should be evaluated as expected", () => {
+        const input = "var two = \"two\"; {\"one\": 10 - 9, two: 1 + 1, \"thr\" + \"ee\": 6 / 2, 4: 4, true: 5, false: 6};";
+        const expected = new Map<HashKey, number>([
+            [new StringObject("one").hashKey(), 1],
+            [new StringObject("two").hashKey(), 2],
+            [new StringObject("three").hashKey(), 3],
+            [new IntegerObject(4).hashKey(), 4],
+            [TRUE.hashKey(), 5],
+            [FALSE.hashKey(), 6],
+        ]);
+
+        const evaluation = testEvaluate(input);
+
+        assert.ok(evaluation instanceof HashObject);
+
+        assert.equal(evaluation.pairs.size, expected.size);
+
+        expected.forEach((expectedValue, expectedHash) => {
+            const element = evaluation.pairs.get(expectedHash.toString());
+
+            assert.ok(element);
+
+            testIntegerObject(element.value, expectedValue);
+        });
+    });
+    t.test("hash IndexExpression should be evaluated as expected", () => {
+        const tests = [
+            {
+                input:    "{\"foo\": 5}[\"foo\"];",
+                expected: 5,
+            },
+            {
+                input:    "{\"foo\": 5}[\"bar\"];",
+                expected: null,
+            },
+            {
+                input:    "var key = \"foo\"; {\"foo\": 5}[key];",
+                expected: 5,
+            },
+            {
+                input:    "{}[\"foo\"]",
+                expected: null,
+            },
+            {
+                input:    "{10: 5}[10]",
+                expected: 5,
+            },
+            {
+                input:    "{true: 5}[true]",
+                expected: 5,
+            },
+            {
+                input:    "{false: 5}[false]",
+                expected: 5,
+            },
+        ];
+
+        tests.forEach((test) => {
+            const evaluation = testEvaluate(test.input);
+
+            if (test.expected === null) {
+                testNullObject(evaluation);
+                return;
+            }
+
+            testIntegerObject(evaluation, test.expected);
+        });
     });
 });
 

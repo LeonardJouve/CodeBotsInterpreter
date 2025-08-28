@@ -20,6 +20,16 @@ import IdentifierExpression from "../ast/identifier_expression";
 import FunctionExpression from "../ast/function_expression";
 import FunctionObject from "../object/function_object";
 import CallExpression from "../ast/call_expression";
+import StringExpression from "../ast/string_expression";
+import StringObject from "../object/string_object";
+import {builtins} from "./builtins";
+import BuiltinObject from "../object/builtin_object";
+import ArrayExpression from "../ast/array_expression";
+import ArrayObject from "../object/array_object";
+import IndexExpression from "../ast/index_expression";
+import HashExpression from "../ast/hash_expression";
+import {isHashable, type HashPair} from "../object/hash_key";
+import HashObject from "../object/hash_object";
 
 export const TRUE = new BooleanObject(true);
 export const FALSE = new BooleanObject(false);
@@ -87,9 +97,6 @@ export const evaluate = (node: Node, environment: Environment): Object => {
         if (isError(func)) {
             return func;
         }
-        if (!(func instanceof FunctionObject)) {
-            return new ErrorObject(`not a function: ${func.type()}`)
-        }
 
         const args = evaluateExpressions(node.args, environment);
         if (args.length === 1 && isError(args[0])) {
@@ -98,6 +105,31 @@ export const evaluate = (node: Node, environment: Environment): Object => {
 
         return evaluateCallExpression(func, args);
     }
+    case node instanceof StringExpression:
+        return new StringObject(node.value);
+    case node instanceof ArrayExpression: {
+        const elements = evaluateExpressions(node.elements, environment);
+        if (elements.length === 1 && isError(elements[0])) {
+            return elements[0];
+        }
+
+        return new ArrayObject(elements);
+    }
+    case node instanceof IndexExpression: {
+        const left = evaluate(node.left, environment);
+        if (isError(left)) {
+            return left;
+        }
+
+        const index = evaluate(node.index, environment);
+        if (isError(index)) {
+            return index;
+        }
+
+        return evaluateIndexExpression(left, index);
+    }
+    case node instanceof HashExpression:
+        return evaluateHashExpression(node, environment);
     default:
         return NULL;
     }
@@ -144,7 +176,7 @@ const evaluatePrefixExpression = (operator: string, right: Object): Object => {
     case "-":
         return evaluateMinusOperator(right);
     default:
-        return new ErrorObject(`unknown operator: ${operator}${right.type}`);
+        return new ErrorObject(`unknown operation: ${operator}${right.type}`);
     }
 };
 
@@ -171,10 +203,12 @@ const evaluateMinusOperator = (right: Object) => {
 
 const evaluateInfixExpression = (operator: string, left: Object, right: Object): Object => {
     switch (true) {
-    case left instanceof IntegerObject && right instanceof IntegerObject:
-        return evaluateIntegerInfixExpression(operator, left, right);
     case left.type() !== right.type():
         return new ErrorObject(`type mismatch: ${left.type()} ${operator} ${right.type()}`)
+    case left instanceof IntegerObject && right instanceof IntegerObject:
+        return evaluateIntegerInfixExpression(operator, left, right);
+    case left instanceof StringObject && right instanceof StringObject:
+        return evaluateStringInfixExpression(operator, left, right);
     case operator === "==":
         return left === right ? TRUE : FALSE;
     case operator === "!=":
@@ -203,7 +237,16 @@ const evaluateIntegerInfixExpression = (operator: string, left: IntegerObject, r
     case "!=":
         return left.value !== right.value ? TRUE : FALSE;
     default:
-        return new ErrorObject(`unknown operator: ${left.type()} ${operator} ${right.type()}`);
+        return new ErrorObject(`unknown operation: ${left.type()} ${operator} ${right.type()}`);
+    }
+};
+
+const evaluateStringInfixExpression = (operator: string, left: StringObject, right: StringObject): Object => {
+    switch (operator) {
+    case "+":
+        return new StringObject(left.value + right.value);
+    default:
+        return new ErrorObject(`unknown operation: ${left.type()} ${operator} ${right.type()}`);
     }
 };
 
@@ -224,11 +267,16 @@ const evaluateIfExpression = (expression: IfExpression, environment: Environment
 
 const evaluateIdentifierExpression = (expression: IdentifierExpression, environment: Environment): Object => {
     const value = environment.get(expression.value);
-    if (!value) {
-        return new ErrorObject(`identifier not found: ${expression.value}`);
+    if (value) {
+        return value;
     }
 
-    return value;
+    const builtin = builtins[expression.value];
+    if (builtin) {
+        return builtin;
+    }
+
+    return new ErrorObject(`identifier not found: ${expression.value}`);
 };
 
 const evaluateExpressions = (expressions: Expression[], environment: Environment): Object[] => {
@@ -246,15 +294,79 @@ const evaluateExpressions = (expressions: Expression[], environment: Environment
     return result;
 };
 
-const evaluateCallExpression = (func: FunctionObject, args: Object[]): Object => {
-    if (func.parameters.length !== args.length) {
-        return new ErrorObject(`invalid argument amount: received ${args.length}, expected ${func.parameters.length}`)
+const evaluateCallExpression = (func: Object, args: Object[]): Object => {
+    switch (true) {
+    case func instanceof FunctionObject: {
+        if (func.parameters.length !== args.length) {
+            return new ErrorObject(`wrong arguments amount: received ${args.length}, expected ${func.parameters.length}`)
+        }
+
+        const extendedEnvironment = extendFunctionEnvironment(func, args);
+        const evaluation = evaluate(func.body, extendedEnvironment);
+
+        return unwrapReturnValue(evaluation);
+    }
+    case func instanceof BuiltinObject:
+        return func.func(...args);
+    default:
+        return new ErrorObject(`not a function: ${func.type()}`)
+    }
+};
+
+const evaluateIndexExpression = (left: Object, index: Object): Object => {
+    switch (true) {
+    case left instanceof ArrayObject && index instanceof IntegerObject:
+        return evaluateArrayIndexExpression(left, index);
+    case left instanceof HashObject:
+        return evaluateHashIndexExpression(left, index);
+    default:
+        return new ErrorObject(`index operator not supported: ${left.type()}`);
+    }
+};
+
+const evaluateHashIndexExpression = (left: HashObject, index: Object): Object => {
+    if (!isHashable(index)) {
+        return new ErrorObject(`unusable as hash key: ${index.type()}`);
     }
 
-    const extendedEnvironment = extendFunctionEnvironment(func, args);
-    const evaluation = evaluate(func.body, extendedEnvironment);
+    const pair = left.pairs.get(index.hashKey().toString());
+    if (!pair) {
+        return NULL;
+    }
 
-    return unwrapReturnValue(evaluation);
+    return pair.value;
+};
+
+const evaluateArrayIndexExpression = (left: ArrayObject, index: IntegerObject): Object => {
+    if (index.value < 0 || index.value >= left.elements.length) {
+        return NULL;
+    }
+
+    return left.elements[index.value];
+};
+
+const evaluateHashExpression = (node: HashExpression, environment: Environment): Object => {
+    const pairs = new Map<string, HashPair>();
+
+    for (const [nodeKey, nodeValue] of node.pairs) {
+        const key = evaluate(nodeKey, environment);
+        if (isError(key)) {
+            return NULL;
+        }
+
+        if (!isHashable(key)) {
+            return new ErrorObject(`unusable as hash key: ${key.type()}`);
+        }
+
+        const value = evaluate(nodeValue, environment);
+        if (isError(value)) {
+            return NULL;
+        }
+
+        pairs.set(key.hashKey().toString(), {key, value});
+    }
+
+    return new HashObject(pairs);
 };
 
 const extendFunctionEnvironment = (func: FunctionObject, args: Object[]): Environment => {
