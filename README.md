@@ -1,5 +1,7 @@
 Interpreter for the language used by [CodeBots](https://github.com/zaidschouwey98/CodeBots) robots.
 
+Published to NPM [here](https://www.npmjs.com/package/codebotsinterpreter)
+
 Inspired by Thorsten Ball's [book](https://interpreterbook.com)
 
 The interpreter is split into multiple steps:
