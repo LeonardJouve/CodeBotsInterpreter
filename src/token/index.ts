@@ -41,6 +41,7 @@ export enum TokenType {
 	VAR      = "VAR",
 	TRUE     = "TRUE",
 	FALSE    = "FALSE",
+    WHILE    = "WHILE",
 };
 
 const keywords: Record<string, TokenType> = {
@@ -51,6 +52,7 @@ const keywords: Record<string, TokenType> = {
 	"var": TokenType.VAR,
 	"true": TokenType.TRUE,
 	"false": TokenType.FALSE,
+    "while": TokenType.WHILE,
 };
 
 export const lookupIdentifier = (identifier: string): TokenType => {

@@ -18,6 +18,7 @@ import StringExpression from "../../src/ast/string_expression";
 import ArrayExpression from "../../src/ast/array_expression";
 import IndexExpression from "../../src/ast/index_expression";
 import HashExpression from "../../src/ast/hash_expression";
+import WhileExpression from "../../src/ast/while_expression";
 
 test("parser", (t) => {
     t.test("VarStatement should be parsed as expected", () => {
@@ -305,6 +306,56 @@ test("parser", (t) => {
             assert.ok(statement instanceof ExpressionStatement);
 
             testIfExpression(statement.expression, test.conditionOperator, test.conditionLeft, test.conditionRight, test.consequence, test.alternative);
+        });
+    });
+    t.test("WhileExpression should be parsed as expected", () => {
+        const tests = [
+            {
+                input:             "while (i < j) { i }",
+                conditionOperator: "<",
+                conditionLeft:     "i",
+                conditionRight:    "j",
+                consequence:       "i",
+            },
+            {
+                input:             "while (true) { i }",
+                condition:         true,
+                consequence:       "i",
+            },
+        ];
+
+        tests.forEach((test) => {
+            const lexer = new Lexer(test.input);
+            const parser = new Parser(lexer);
+            const program = parser.parseProgram();
+
+            testParserErrors(parser);
+
+            assert.equal(program.statements.length, 1);
+
+            let [statement] = program.statements;
+
+            assert.ok(statement instanceof ExpressionStatement);
+
+            const {expression} = statement;
+
+            assert.ok(expression instanceof WhileExpression);
+
+            const {body, condition} = expression;
+
+            if (test.condition) {
+                testBooleanExpression(condition, test.condition);
+            } else if (test.conditionOperator && test.conditionLeft && test.conditionRight) {
+                testInfixExpression(condition, test.conditionOperator, test.conditionLeft, test.conditionRight);
+            }
+
+            assert.equal(body.statements.length, 1);
+
+            [statement] = body.statements;
+
+            assert.ok(statement instanceof ExpressionStatement);
+
+            testIdentifierExpression(statement.expression, test.consequence);
         });
     });
     t.test("FunctionExpression should be parsed as expected", () => {

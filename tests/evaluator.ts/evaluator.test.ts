@@ -260,6 +260,37 @@ test("evaluator", (t) => {
             testIntegerObject(evaluation, test.expected)
         });
     });
+    t.test("WhileExpression should be evaluated as expected", () => {
+        const tests = [
+            {
+                input: "var i = 0; while (i < 3) { var i = i + 1; } i;",
+                expected: 3,
+            },
+            {
+                input: "var i = 0; while (i < 0) { var i = i + 1; } i;",
+                expected: 0,
+            },
+            {
+                input: "var i = 0; var sum = 0; while (i < 5) { var sum = sum + i; var i = i + 1; } sum;",
+                expected: 10,
+            },
+            {
+                input: "while (false) { 99 }",
+                expected: null,
+            },
+        ];
+
+        tests.forEach((test) => {
+            const evaluation = testEvaluate(test.input);
+
+            if (test.expected === null) {
+                testNullObject(evaluation);
+                return;
+            }
+
+            testIntegerObject(evaluation, test.expected);
+        });
+    });
     t.test("ReturnStatement should evaluate as expected", () => {
         const tests = [
             {
