@@ -13,6 +13,7 @@ import ArrayObject from "../../src/object/array_object";
 import HashObject from "../../src/object/hash_object";
 import Environment from "../../src/environment";
 import type {HashKey} from "../../src/object/hash_key";
+import Builtins from "../../src/evaluator/builtins";
 
 test("evaluator", (t) => {
     t.test("IntegerExpression should evaluate as expected", () => {
@@ -722,8 +723,9 @@ const testEvaluate = (input: string): Object => {
 	const parser = new Parser(lexer);
 	const program = parser.parseProgram();
 	const environment = new Environment();
+    const builtins = new Builtins();
 
-	return evaluate(program, environment);
+	return evaluate(program, environment, builtins);
 };
 
 const testIntegerObject = (object: Object, expected: number) => {

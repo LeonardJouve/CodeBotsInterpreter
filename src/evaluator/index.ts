@@ -22,7 +22,7 @@ import FunctionObject from "../object/function_object";
 import CallExpression from "../ast/call_expression";
 import StringExpression from "../ast/string_expression";
 import StringObject from "../object/string_object";
-import {builtins} from "./builtins";
+import Builtins from "./builtins";
 import BuiltinObject from "../object/builtin_object";
 import ArrayExpression from "../ast/array_expression";
 import ArrayObject from "../object/array_object";
@@ -36,18 +36,18 @@ export const TRUE = new BooleanObject(true);
 export const FALSE = new BooleanObject(false);
 export const NULL = new NullObject();
 
-export const evaluate = (node: Node, environment: Environment): Object => {
+export const evaluate = (node: Node, environment: Environment, builtins: Builtins): Object => {
     switch (true) {
     case node instanceof Program:
-        return evaluateProgram(node, environment);
+        return evaluateProgram(node, environment, builtins);
     case node instanceof ExpressionStatement:
-        return evaluate(node.expression, environment);
+        return evaluate(node.expression, environment, builtins);
     case node instanceof IntegerExpression:
         return new IntegerObject(node.value);
     case node instanceof BooleanExpression:
         return node.value ? TRUE : FALSE;
     case node instanceof PrefixExpression: {
-        const right = evaluate(node.right, environment);
+        const right = evaluate(node.right, environment, builtins);
         if (isError(right)) {
             return right;
         }
@@ -55,12 +55,12 @@ export const evaluate = (node: Node, environment: Environment): Object => {
         return evaluatePrefixExpression(node.operator, right);
     }
     case node instanceof InfixExpression: {
-        const left = evaluate(node.left, environment);
+        const left = evaluate(node.left, environment, builtins);
         if (isError(left)) {
             return left;
         }
 
-        const right = evaluate(node.right, environment);
+        const right = evaluate(node.right, environment, builtins);
         if (isError(right)) {
             return right;
         }
@@ -68,11 +68,11 @@ export const evaluate = (node: Node, environment: Environment): Object => {
         return evaluateInfixExpression(node.operator, left, right);
     }
     case node instanceof BlockStatement:
-        return evaluateBlockStatement(node, environment);
+        return evaluateBlockStatement(node, environment, builtins);
     case node instanceof IfExpression:
-        return evaluateIfExpression(node, environment);
+        return evaluateIfExpression(node, environment, builtins);
     case node instanceof ReturnStatement: {
-        const value = evaluate(node.value, environment);
+        const value = evaluate(node.value, environment, builtins);
         if (isError(value)) {
             return value;
         }
@@ -80,7 +80,7 @@ export const evaluate = (node: Node, environment: Environment): Object => {
         return new ReturnObject(value);
     }
     case node instanceof VarStatement: {
-        const value = evaluate(node.value, environment);
+        const value = evaluate(node.value, environment, builtins);
         if (isError(value)) {
             return value;
         }
@@ -90,26 +90,26 @@ export const evaluate = (node: Node, environment: Environment): Object => {
         return value;
     }
     case node instanceof IdentifierExpression:
-        return evaluateIdentifierExpression(node, environment);
+        return evaluateIdentifierExpression(node, environment, builtins);
     case node instanceof FunctionExpression:
         return new FunctionObject(node.parameters, node.body, environment);
     case node instanceof CallExpression: {
-        const func = evaluate(node.func, environment);
+        const func = evaluate(node.func, environment, builtins);
         if (isError(func)) {
             return func;
         }
 
-        const args = evaluateExpressions(node.args, environment);
+        const args = evaluateExpressions(node.args, environment, builtins);
         if (args.length === 1 && isError(args[0])) {
             return args[0];
         }
 
-        return evaluateCallExpression(func, args);
+        return evaluateCallExpression(func, args, builtins);
     }
     case node instanceof StringExpression:
         return new StringObject(node.value);
     case node instanceof ArrayExpression: {
-        const elements = evaluateExpressions(node.elements, environment);
+        const elements = evaluateExpressions(node.elements, environment, builtins);
         if (elements.length === 1 && isError(elements[0])) {
             return elements[0];
         }
@@ -117,12 +117,12 @@ export const evaluate = (node: Node, environment: Environment): Object => {
         return new ArrayObject(elements);
     }
     case node instanceof IndexExpression: {
-        const left = evaluate(node.left, environment);
+        const left = evaluate(node.left, environment, builtins);
         if (isError(left)) {
             return left;
         }
 
-        const index = evaluate(node.index, environment);
+        const index = evaluate(node.index, environment, builtins);
         if (isError(index)) {
             return index;
         }
@@ -130,9 +130,9 @@ export const evaluate = (node: Node, environment: Environment): Object => {
         return evaluateIndexExpression(left, index);
     }
     case node instanceof HashExpression:
-        return evaluateHashExpression(node, environment);
+        return evaluateHashExpression(node, environment, builtins);
     case node instanceof WhileExpression:
-        return evaluateWhileExpression(node, environment);
+        return evaluateWhileExpression(node, environment, builtins);
     default:
         return NULL;
     }
@@ -142,11 +142,11 @@ const isError = (object: Object): boolean => {
     return object.type() === ObjectType.ERROR;
 }
 
-const evaluateProgram = (program: Program, environment: Environment): Object => {
+const evaluateProgram = (program: Program, environment: Environment, builtins: Builtins): Object => {
     let result = NULL;
 
     for (let i = 0; i < program.statements.length; ++i) {
-        result = evaluate(program.statements[i], environment);
+        result = evaluate(program.statements[i], environment, builtins);
 
         if (result instanceof ReturnObject) {
             return result.value;
@@ -158,11 +158,11 @@ const evaluateProgram = (program: Program, environment: Environment): Object => 
     return result;
 };
 
-const evaluateBlockStatement = (blockStatement: BlockStatement, environment: Environment): Object => {
+const evaluateBlockStatement = (blockStatement: BlockStatement, environment: Environment, builtins: Builtins): Object => {
     let result = NULL;
 
     for (let i = 0; i < blockStatement.statements.length; ++i) {
-        result = evaluate(blockStatement.statements[i], environment);
+        result = evaluate(blockStatement.statements[i], environment, builtins);
 
         if (result instanceof ReturnObject || result instanceof ErrorObject) {
             return result;
@@ -253,28 +253,28 @@ const evaluateStringInfixExpression = (operator: string, left: StringObject, rig
     }
 };
 
-const evaluateIfExpression = (expression: IfExpression, environment: Environment): Object => {
-    const condition = evaluate(expression.condition, environment);
+const evaluateIfExpression = (expression: IfExpression, environment: Environment, builtins: Builtins): Object => {
+    const condition = evaluate(expression.condition, environment, builtins);
     if (isError(condition)) {
         return condition;
     }
 
     if (isTruthy(condition)) {
-        return evaluate(expression.consequence, environment);
+        return evaluate(expression.consequence, environment, builtins);
     } else if (expression.alternative) {
-        return evaluate(expression.alternative, environment);
+        return evaluate(expression.alternative, environment, builtins);
     } else {
         return NULL;
     }
 };
 
-const evaluateIdentifierExpression = (expression: IdentifierExpression, environment: Environment): Object => {
+const evaluateIdentifierExpression = (expression: IdentifierExpression, environment: Environment, builtins: Builtins): Object => {
     const value = environment.get(expression.value);
     if (value) {
         return value;
     }
 
-    const builtin = builtins[expression.value];
+    const builtin = builtins.get(expression.value);
     if (builtin) {
         return builtin;
     }
@@ -282,11 +282,11 @@ const evaluateIdentifierExpression = (expression: IdentifierExpression, environm
     return new ErrorObject(`identifier not found: ${expression.value}`);
 };
 
-const evaluateExpressions = (expressions: Expression[], environment: Environment): Object[] => {
+const evaluateExpressions = (expressions: Expression[], environment: Environment, builtins: Builtins): Object[] => {
     const result = [];
 
     for (let i = 0; i < expressions.length; ++i) {
-        const evaluation = evaluate(expressions[i], environment);
+        const evaluation = evaluate(expressions[i], environment, builtins);
         if (isError(evaluation)) {
             return [evaluation];
         }
@@ -297,7 +297,7 @@ const evaluateExpressions = (expressions: Expression[], environment: Environment
     return result;
 };
 
-const evaluateCallExpression = (func: Object, args: Object[]): Object => {
+const evaluateCallExpression = (func: Object, args: Object[], builtins: Builtins): Object => {
     switch (true) {
     case func instanceof FunctionObject: {
         if (func.parameters.length !== args.length) {
@@ -305,7 +305,7 @@ const evaluateCallExpression = (func: Object, args: Object[]): Object => {
         }
 
         const extendedEnvironment = extendFunctionEnvironment(func, args);
-        const evaluation = evaluate(func.body, extendedEnvironment);
+        const evaluation = evaluate(func.body, extendedEnvironment, builtins);
 
         return unwrapReturnValue(evaluation);
     }
@@ -348,11 +348,11 @@ const evaluateArrayIndexExpression = (left: ArrayObject, index: IntegerObject): 
     return left.elements[index.value];
 };
 
-const evaluateHashExpression = (node: HashExpression, environment: Environment): Object => {
+const evaluateHashExpression = (node: HashExpression, environment: Environment, builtins: Builtins): Object => {
     const pairs = new Map<string, HashPair>();
 
     for (const [nodeKey, nodeValue] of node.pairs) {
-        const key = evaluate(nodeKey, environment);
+        const key = evaluate(nodeKey, environment, builtins);
         if (isError(key)) {
             return NULL;
         }
@@ -361,7 +361,7 @@ const evaluateHashExpression = (node: HashExpression, environment: Environment):
             return new ErrorObject(`unusable as hash key: ${key.type()}`);
         }
 
-        const value = evaluate(nodeValue, environment);
+        const value = evaluate(nodeValue, environment, builtins);
         if (isError(value)) {
             return NULL;
         }
@@ -372,16 +372,16 @@ const evaluateHashExpression = (node: HashExpression, environment: Environment):
     return new HashObject(pairs);
 };
 
-const evaluateWhileExpression = (node: WhileExpression, environment: Environment): Object => {
+const evaluateWhileExpression = (node: WhileExpression, environment: Environment, builtins: Builtins): Object => {
     let result: Object|null = null;
 
     while (true) {
-        const condition = evaluate(node.condition, environment);
+        const condition = evaluate(node.condition, environment, builtins);
         if (!isTruthy(condition)) {
             break;
         }
 
-        result = evaluateBlockStatement(node.body, environment);
+        result = evaluateBlockStatement(node.body, environment, builtins);
         if (isError(result) || result instanceof ReturnObject) {
             return result;
         }

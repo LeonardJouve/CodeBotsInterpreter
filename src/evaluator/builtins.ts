@@ -5,89 +5,102 @@ import StringObject from "../object/string_object";
 import ArrayObject from "../object/array_object";
 import {NULL} from ".";
 
-export const builtins: Record<string, BuiltinObject> = {
-    "len": new BuiltinObject((...args) => {
-        if (args.length !== 1) {
-            return new ErrorObject(`wrong arguments amount: received ${args.length}, expected 1`);
-        }
+export default class Builtins {
+    private builtins: Record<string, BuiltinObject>;
+    private customBuiltins: Record<string, BuiltinObject>;
 
-        const [arg] = args;
+    constructor(customBuiltins: Record<string, BuiltinObject> = {}) {
+        this.customBuiltins = customBuiltins;
+        this.builtins = {
+            "len": new BuiltinObject((...args) => {
+                if (args.length !== 1) {
+                    return new ErrorObject(`wrong arguments amount: received ${args.length}, expected 1`);
+                }
 
-        switch (true) {
-        case arg instanceof StringObject:
-            return new IntegerObject(arg.value.length);
-        case arg instanceof ArrayObject:
-            return new IntegerObject(arg.elements.length);
-        default:
-            return new ErrorObject(`unsupported argument type for builtin function len: ${arg.type()}`);
-        }
-    }),
-    "first": new BuiltinObject((...args) => {
-        if (args.length !== 1) {
-            return new ErrorObject(`wrong arguments amount: received ${args.length}, expected 1`);
-        }
+                const [arg] = args;
 
-        const [arg] = args;
+                switch (true) {
+                case arg instanceof StringObject:
+                    return new IntegerObject(arg.value.length);
+                case arg instanceof ArrayObject:
+                    return new IntegerObject(arg.elements.length);
+                default:
+                    return new ErrorObject(`unsupported argument type for builtin function len: ${arg.type()}`);
+                }
+            }),
+            "first": new BuiltinObject((...args) => {
+                if (args.length !== 1) {
+                    return new ErrorObject(`wrong arguments amount: received ${args.length}, expected 1`);
+                }
 
-        if (!(arg instanceof ArrayObject)) {
-            return new ErrorObject(`unsupported argument type for builtin function first: ${arg.type()}`);
-        }
+                const [arg] = args;
 
-        if (!arg.elements.length) {
-            return NULL;
-        }
+                if (!(arg instanceof ArrayObject)) {
+                    return new ErrorObject(`unsupported argument type for builtin function first: ${arg.type()}`);
+                }
 
-        return arg.elements[0];
-	}),
-	"last": new BuiltinObject((...args) => {
-        if (args.length !== 1) {
-            return new ErrorObject(`wrong arguments amount: received ${args.length}, expected 1`);
-        }
+                if (!arg.elements.length) {
+                    return NULL;
+                }
 
-        const [arg] = args;
+                return arg.elements[0];
+            }),
+            "last": new BuiltinObject((...args) => {
+                if (args.length !== 1) {
+                    return new ErrorObject(`wrong arguments amount: received ${args.length}, expected 1`);
+                }
 
-        if (!(arg instanceof ArrayObject)) {
-            return new ErrorObject(`unsupported argument type for builtin function last: ${arg.type()}`);
-        }
+                const [arg] = args;
 
-        if (!arg.elements.length) {
-            return NULL;
-        }
+                if (!(arg instanceof ArrayObject)) {
+                    return new ErrorObject(`unsupported argument type for builtin function last: ${arg.type()}`);
+                }
 
-        return arg.elements[arg.elements.length - 1];
-	}),
-	"rest": new BuiltinObject((...args) => {
-        if (args.length !== 1) {
-            return new ErrorObject(`wrong arguments amount: received ${args.length}, expected 1`);
-        }
+                if (!arg.elements.length) {
+                    return NULL;
+                }
 
-        const [arg] = args;
+                return arg.elements[arg.elements.length - 1];
+            }),
+            "rest": new BuiltinObject((...args) => {
+                if (args.length !== 1) {
+                    return new ErrorObject(`wrong arguments amount: received ${args.length}, expected 1`);
+                }
 
-        if (!(arg instanceof ArrayObject)) {
-            return new ErrorObject(`unsupported argument type for builtin function rest: ${arg.type()}`);
-        }
+                const [arg] = args;
 
-        if (!arg.elements.length) {
-            return NULL;
-        }
+                if (!(arg instanceof ArrayObject)) {
+                    return new ErrorObject(`unsupported argument type for builtin function rest: ${arg.type()}`);
+                }
 
-        const elements = arg.elements.slice(1);
+                if (!arg.elements.length) {
+                    return NULL;
+                }
 
-        return new ArrayObject(elements);
-	}),
-	"push": new BuiltinObject((...args) => {
-        if (args.length !== 2) {
-            return new ErrorObject(`wrong arguments amount: received ${args.length}, expected 2`);
-        }
+                const elements = arg.elements.slice(1);
 
-        const [array, element] = args;
+                return new ArrayObject(elements);
+            }),
+            "push": new BuiltinObject((...args) => {
+                if (args.length !== 2) {
+                    return new ErrorObject(`wrong arguments amount: received ${args.length}, expected 2`);
+                }
 
-        if (!(array instanceof ArrayObject)) {
-            return new ErrorObject(`unsupported argument type for builtin function push: ${array.type()}`);
-        }
+                const [array, element] = args;
 
-        array.elements.push(element);
+                if (!(array instanceof ArrayObject)) {
+                    return new ErrorObject(`unsupported argument type for builtin function push: ${array.type()}`);
+                }
 
-        return array;
-	}),
-};
+                array.elements.push(element);
+
+                return array;
+            }),
+        };
+    }
+
+    get(name: string): BuiltinObject|null {
+        return this.customBuiltins[name] ?? this.builtins[name] ?? null;
+    }
+}
+

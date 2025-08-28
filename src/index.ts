@@ -2,6 +2,7 @@ import Lexer from "./lexer";
 import Parser from "./parser";
 import {evaluate} from "./evaluator";
 import Environment from "./environment";
+import Builtins from "./evaluator/builtins";
 
 export default class Interpreter {
     constructor() {}
@@ -18,6 +19,7 @@ export default class Interpreter {
             const lexer = new Lexer(line);
             const parser = new Parser(lexer);
             const program = parser.parseProgram();
+            const builtins = new Builtins();
 
             if (parser.errors.length) {
                 process.stderr.write("Parser error:\n");
@@ -31,7 +33,7 @@ export default class Interpreter {
                 return;
             }
 
-            const evaluation = evaluate(program, environment);
+            const evaluation = evaluate(program, environment, builtins);
 
             process.stdout.write(`${evaluation.inspect()}\n`);
 
