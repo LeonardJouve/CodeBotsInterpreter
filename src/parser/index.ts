@@ -18,6 +18,7 @@ import type Lexer from "../lexer";
 import {TokenType, type Token} from "../token";
 import IndexExpression from "../ast/index_expression";
 import HashExpression from "../ast/hash_expression";
+import WhileExpression from "../ast/while_expression";
 
 type PrefixParser = () => Expression|null;
 type InfixParser = (expression: Expression) => Expression|null;
@@ -78,6 +79,7 @@ export default class Parser {
             [TokenType.STRING]: this.parseStringExpression.bind(this),
             [TokenType.LBRACKET]: this.parseArrayExpression.bind(this),
             [TokenType.LBRACE]: this.parseHashExpression.bind(this),
+            [TokenType.WHILE]: this.parseWhileExpression.bind(this),
         };
         this.infixParsers = {
             [TokenType.EQUAL]: this.parseInfixExpression.bind(this),
@@ -513,6 +515,33 @@ export default class Parser {
         }
 
         return new HashExpression(token, pairs);
+    }
+
+    parseWhileExpression(): WhileExpression|null {
+        const token = this.currentToken;
+
+        if (!this.expectPeekTokenType(TokenType.LPAREN)) {
+            return null;
+        }
+
+        this.nextToken();
+
+        const condition = this.parseExpression(OperatorPrecedence.LOWEST);
+        if (!condition) {
+            return null;
+        }
+
+        if (!this.expectPeekTokenType(TokenType.RPAREN)) {
+            return null;
+        }
+
+        if (!this.expectPeekTokenType(TokenType.LBRACE)) {
+            return null;
+        }
+
+        const body = this.parseBlockStatement();
+
+        return new WhileExpression(token, condition, body);
     }
 }
 

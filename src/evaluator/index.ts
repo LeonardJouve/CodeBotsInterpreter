@@ -30,6 +30,7 @@ import IndexExpression from "../ast/index_expression";
 import HashExpression from "../ast/hash_expression";
 import {isHashable, type HashPair} from "../object/hash_key";
 import HashObject from "../object/hash_object";
+import WhileExpression from "../ast/while_expression";
 
 export const TRUE = new BooleanObject(true);
 export const FALSE = new BooleanObject(false);
@@ -130,6 +131,8 @@ export const evaluate = (node: Node, environment: Environment): Object => {
     }
     case node instanceof HashExpression:
         return evaluateHashExpression(node, environment);
+    case node instanceof WhileExpression:
+        return evaluateWhileExpression(node, environment);
     default:
         return NULL;
     }
@@ -367,6 +370,28 @@ const evaluateHashExpression = (node: HashExpression, environment: Environment):
     }
 
     return new HashObject(pairs);
+};
+
+const evaluateWhileExpression = (node: WhileExpression, environment: Environment): Object => {
+    let result: Object|null = null;
+
+    while (true) {
+        const condition = evaluate(node.condition, environment);
+        if (!isTruthy(condition)) {
+            break;
+        }
+
+        result = evaluateBlockStatement(node.body, environment);
+        if (isError(result) || result instanceof ReturnObject) {
+            return result;
+        }
+    }
+
+    if (!result) {
+        return NULL;
+    }
+
+    return result;
 };
 
 const extendFunctionEnvironment = (func: FunctionObject, args: Object[]): Environment => {

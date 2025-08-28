@@ -92,6 +92,9 @@ test("lexer", (t) => {
             "foo bar";
             [1, 2];
             {"foo": "bar"};
+            while (true) {
+                5;
+            }
         `;
 
         const tests: Token[] = [
@@ -184,6 +187,14 @@ test("lexer", (t) => {
             {type: TokenType.STRING, literal: "bar"},
             {type: TokenType.RBRACE, literal: "}"},
             {type: TokenType.SEMICOLON, literal: ";"},
+            {type: TokenType.WHILE, literal: "while"},
+            {type: TokenType.LPAREN, literal: "("},
+            {type: TokenType.TRUE, literal: "true"},
+            {type: TokenType.RPAREN, literal: ")"},
+            {type: TokenType.LBRACE, literal: "{"},
+            {type: TokenType.INT, literal: "5"},
+            {type: TokenType.SEMICOLON, literal: ";"},
+            {type: TokenType.RBRACE, literal: "}"},
             {type: TokenType.EOF, literal: "\x00"},
         ];
 

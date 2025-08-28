@@ -33,6 +33,10 @@ test("token", (t) => {
                 input: "false",
                 expected: TokenType.FALSE,
             },
+            {
+                input: "while",
+                expected: TokenType.WHILE,
+            }
         ];
 
         tests.forEach(({input, expected}) => {
