@@ -8,7 +8,7 @@ import BuiltinObject from "./object/builtin_object";
 export default class Interpreter {
     constructor() {}
 
-    evaluate(code: string, customBuiltins?: Record<string, BuiltinObject>): string|null {
+    async evaluate(code: string, customBuiltins?: Record<string, BuiltinObject>): Promise<string|null> {
         const lexer = new Lexer(code);
         const parser = new Parser(lexer);
         const program = parser.parseProgram();
@@ -20,7 +20,7 @@ export default class Interpreter {
         const builtins = new Builtins(customBuiltins);
         const environment = new Environment();
 
-        const evaluation = evaluate(program, environment, builtins);
+        const evaluation = await evaluate(program, environment, builtins);
 
         if (isError(evaluation)) {
             return evaluation.inspect();
@@ -37,7 +37,7 @@ export default class Interpreter {
 
         process.stdin.setEncoding("utf-8");
 
-        process.stdin.on("data", (line: string) => {
+        process.stdin.on("data", async (line: string) => {
             const lexer = new Lexer(line);
             const parser = new Parser(lexer);
             const program = parser.parseProgram();
@@ -55,7 +55,7 @@ export default class Interpreter {
                 return;
             }
 
-            const evaluation = evaluate(program, environment, builtins);
+            const evaluation = await evaluate(program, environment, builtins);
 
             process.stdout.write(`${evaluation.inspect()}\n`);
 

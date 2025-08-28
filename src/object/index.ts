@@ -22,4 +22,4 @@ export interface Hashable {
     hashKey(): HashKey;
 };
 
-export type BuiltinFunction = (...args: Object[]) => Object;
+export type BuiltinFunction = (...args: Object[]) => Promise<Object>;

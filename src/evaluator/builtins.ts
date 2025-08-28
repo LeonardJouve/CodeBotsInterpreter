@@ -12,7 +12,7 @@ export default class Builtins {
     constructor(customBuiltins: Record<string, BuiltinObject> = {}) {
         this.customBuiltins = customBuiltins;
         this.builtins = {
-            "len": new BuiltinObject((...args) => {
+            "len": new BuiltinObject(async (...args) => {
                 if (args.length !== 1) {
                     return new ErrorObject(`wrong arguments amount: received ${args.length}, expected 1`);
                 }
@@ -28,7 +28,7 @@ export default class Builtins {
                     return new ErrorObject(`unsupported argument type for builtin function len: ${arg.type()}`);
                 }
             }),
-            "first": new BuiltinObject((...args) => {
+            "first": new BuiltinObject(async (...args) => {
                 if (args.length !== 1) {
                     return new ErrorObject(`wrong arguments amount: received ${args.length}, expected 1`);
                 }
@@ -45,7 +45,7 @@ export default class Builtins {
 
                 return arg.elements[0];
             }),
-            "last": new BuiltinObject((...args) => {
+            "last": new BuiltinObject(async (...args) => {
                 if (args.length !== 1) {
                     return new ErrorObject(`wrong arguments amount: received ${args.length}, expected 1`);
                 }
@@ -62,7 +62,7 @@ export default class Builtins {
 
                 return arg.elements[arg.elements.length - 1];
             }),
-            "rest": new BuiltinObject((...args) => {
+            "rest": new BuiltinObject(async (...args) => {
                 if (args.length !== 1) {
                     return new ErrorObject(`wrong arguments amount: received ${args.length}, expected 1`);
                 }
@@ -81,7 +81,7 @@ export default class Builtins {
 
                 return new ArrayObject(elements);
             }),
-            "push": new BuiltinObject((...args) => {
+            "push": new BuiltinObject(async (...args) => {
                 if (args.length !== 2) {
                     return new ErrorObject(`wrong arguments amount: received ${args.length}, expected 2`);
                 }

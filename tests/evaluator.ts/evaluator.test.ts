@@ -80,8 +80,8 @@ test("evaluator", (t) => {
             },
         ];
 
-        tests.forEach((test) => {
-            const evaluation = testEvaluate(test.input);
+        tests.forEach(async (test) => {
+            const evaluation = await testEvaluate(test.input);
             testIntegerObject(evaluation, test.expected);
         });
     });
@@ -177,8 +177,8 @@ test("evaluator", (t) => {
             },
         ];
 
-        tests.forEach((test) => {
-            const evaluation = testEvaluate(test.input);
+        tests.forEach(async (test) => {
+            const evaluation = await testEvaluate(test.input);
             testBooleanObject(evaluation, test.expected);
         });
     });
@@ -214,8 +214,8 @@ test("evaluator", (t) => {
             },
         ];
 
-        tests.forEach((test) => {
-            const evaluation = testEvaluate(test.input);
+        tests.forEach(async (test) => {
+            const evaluation = await testEvaluate(test.input);
             testBooleanObject(evaluation, test.expected);
         });
     });
@@ -251,8 +251,8 @@ test("evaluator", (t) => {
             },
         ];
 
-        tests.forEach((test) => {
-            const evaluation = testEvaluate(test.input);
+        tests.forEach(async (test) => {
+            const evaluation = await testEvaluate(test.input);
             if (typeof test.expected !== "number") {
                 testNullObject(evaluation);
 
@@ -281,8 +281,8 @@ test("evaluator", (t) => {
             },
         ];
 
-        tests.forEach((test) => {
-            const evaluation = testEvaluate(test.input);
+        tests.forEach(async (test) => {
+            const evaluation = await testEvaluate(test.input);
 
             if (test.expected === null) {
                 testNullObject(evaluation);
@@ -332,8 +332,8 @@ test("evaluator", (t) => {
             },
         ];
 
-        tests.forEach((test) => {
-            const evaluation = testEvaluate(test.input);
+        tests.forEach(async (test) => {
+            const evaluation = await testEvaluate(test.input);
             testIntegerObject(evaluation, test.expected);
         });
     });
@@ -381,8 +381,8 @@ test("evaluator", (t) => {
             },
         ];
 
-        tests.forEach((test) => {
-            const evaluation = testEvaluate(test.input);
+        tests.forEach(async (test) => {
+            const evaluation = await testEvaluate(test.input);
 		    testError(evaluation, test.expected);
         });
     });
@@ -406,14 +406,14 @@ test("evaluator", (t) => {
             },
         ];
 
-        tests.forEach((test) => {
-            const evaluation = testEvaluate(test.input);
+        tests.forEach(async (test) => {
+            const evaluation = await testEvaluate(test.input);
             testIntegerObject(evaluation, test.expected);
         });
     });
-    t.test("FunctionExpression should be evaluated as expected", () => {
+    t.test("FunctionExpression should be evaluated as expected", async () => {
         const input = "fn(x) {return x + 2;}";
-        const evaluation = testEvaluate(input);
+        const evaluation = await testEvaluate(input);
 
         assert.ok(evaluation instanceof FunctionObject);
 
@@ -456,33 +456,33 @@ test("evaluator", (t) => {
             },
         ];
 
-        tests.forEach((test) => {
-            const evaluation = testEvaluate(test.input);
+        tests.forEach(async (test) => {
+            const evaluation = await testEvaluate(test.input);
             testIntegerObject(evaluation, test.expected);
         });
     });
-    t.test("StringExpression should be evaluated as expected", () => {
+    t.test("StringExpression should be evaluated as expected", async () => {
         const input = "\"hello world\"";
 
-        const evaluation = testEvaluate(input);
+        const evaluation = await testEvaluate(input);
 
         assert.ok(evaluation instanceof StringObject);
 
         assert.equal(evaluation.value, "hello world");
     });
-    t.test("StringExpression should concatenate as expected", () => {
+    t.test("StringExpression should concatenate as expected", async () => {
         const input = "\"hello\" + \" \" + \"world\"";
 
-        const evaluation = testEvaluate(input);
+        const evaluation = await testEvaluate(input);
 
         assert.ok(evaluation instanceof StringObject);
 
         assert.equal(evaluation.value, "hello world");
     });
-    t.test("closures should be evaluated as expected", () => {
+    t.test("closures should be evaluated as expected", async () => {
         const input = "var newAdder = fn(x) {return fn(y) {return x + y;};}; var x = 10; var y = 10; var addTwo = newAdder(2); addTwo(2);";
 
-        const evaluation = testEvaluate(input);
+        const evaluation = await testEvaluate(input);
         testIntegerObject(evaluation, 4);
     });
     t.test("builtin functions should be evaluated as expected", () => {
@@ -557,8 +557,8 @@ test("evaluator", (t) => {
             },
         ];
 
-        tests.forEach((test) => {
-            const evaluation = testEvaluate(test.input);
+        tests.forEach(async (test) => {
+            const evaluation = await testEvaluate(test.input);
 
             switch (true) {
             case typeof test.expected === "number":
@@ -580,10 +580,10 @@ test("evaluator", (t) => {
             }
         });
     });
-    t.test("ArrayExpression should be evaluated as expected", () => {
+    t.test("ArrayExpression should be evaluated as expected", async () => {
         const input = "[1, 2 * 2, 3 + 3]";
 
-        const evaluation = testEvaluate(input);
+        const evaluation = await testEvaluate(input);
 
         assert.ok(evaluation instanceof ArrayObject);
 
@@ -637,8 +637,8 @@ test("evaluator", (t) => {
             },
         ];
 
-        tests.forEach((test) => {
-            const evaluation = testEvaluate(test.input);
+        tests.forEach(async (test) => {
+            const evaluation = await testEvaluate(test.input);
 
             if (test.expected === null) {
                 testNullObject(evaluation);
@@ -648,7 +648,7 @@ test("evaluator", (t) => {
             testIntegerObject(evaluation, test.expected);
         });
     });
-    t.test("HashExpression should be evaluated as expected", () => {
+    t.test("HashExpression should be evaluated as expected", async () => {
         const input = "var two = \"two\"; {\"one\": 10 - 9, two: 1 + 1, \"thr\" + \"ee\": 6 / 2, 4: 4, true: 5, false: 6};";
         const expected = new Map<HashKey, number>([
             [new StringObject("one").hashKey(), 1],
@@ -659,7 +659,7 @@ test("evaluator", (t) => {
             [FALSE.hashKey(), 6],
         ]);
 
-        const evaluation = testEvaluate(input);
+        const evaluation = await testEvaluate(input);
 
         assert.ok(evaluation instanceof HashObject);
 
@@ -705,8 +705,8 @@ test("evaluator", (t) => {
             },
         ];
 
-        tests.forEach((test) => {
-            const evaluation = testEvaluate(test.input);
+        tests.forEach(async (test) => {
+            const evaluation = await testEvaluate(test.input);
 
             if (test.expected === null) {
                 testNullObject(evaluation);
@@ -718,14 +718,14 @@ test("evaluator", (t) => {
     });
 });
 
-const testEvaluate = (input: string): Object => {
+const testEvaluate = async (input: string): Promise<Object> => {
 	const lexer = new Lexer(input);
 	const parser = new Parser(lexer);
 	const program = parser.parseProgram();
 	const environment = new Environment();
     const builtins = new Builtins();
 
-	return evaluate(program, environment, builtins);
+	return await evaluate(program, environment, builtins);
 };
 
 const testIntegerObject = (object: Object, expected: number) => {

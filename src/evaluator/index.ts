@@ -36,7 +36,7 @@ export const TRUE = new BooleanObject(true);
 export const FALSE = new BooleanObject(false);
 export const NULL = new NullObject();
 
-export const evaluate = (node: Node, environment: Environment, builtins: Builtins): Object => {
+export const evaluate = async (node: Node, environment: Environment, builtins: Builtins): Promise<Object> => {
     switch (true) {
     case node instanceof Program:
         return evaluateProgram(node, environment, builtins);
@@ -47,7 +47,7 @@ export const evaluate = (node: Node, environment: Environment, builtins: Builtin
     case node instanceof BooleanExpression:
         return node.value ? TRUE : FALSE;
     case node instanceof PrefixExpression: {
-        const right = evaluate(node.right, environment, builtins);
+        const right = await evaluate(node.right, environment, builtins);
         if (isError(right)) {
             return right;
         }
@@ -55,12 +55,12 @@ export const evaluate = (node: Node, environment: Environment, builtins: Builtin
         return evaluatePrefixExpression(node.operator, right);
     }
     case node instanceof InfixExpression: {
-        const left = evaluate(node.left, environment, builtins);
+        const left = await evaluate(node.left, environment, builtins);
         if (isError(left)) {
             return left;
         }
 
-        const right = evaluate(node.right, environment, builtins);
+        const right = await evaluate(node.right, environment, builtins);
         if (isError(right)) {
             return right;
         }
@@ -72,7 +72,7 @@ export const evaluate = (node: Node, environment: Environment, builtins: Builtin
     case node instanceof IfExpression:
         return evaluateIfExpression(node, environment, builtins);
     case node instanceof ReturnStatement: {
-        const value = evaluate(node.value, environment, builtins);
+        const value = await evaluate(node.value, environment, builtins);
         if (isError(value)) {
             return value;
         }
@@ -80,7 +80,7 @@ export const evaluate = (node: Node, environment: Environment, builtins: Builtin
         return new ReturnObject(value);
     }
     case node instanceof VarStatement: {
-        const value = evaluate(node.value, environment, builtins);
+        const value = await evaluate(node.value, environment, builtins);
         if (isError(value)) {
             return value;
         }
@@ -94,22 +94,22 @@ export const evaluate = (node: Node, environment: Environment, builtins: Builtin
     case node instanceof FunctionExpression:
         return new FunctionObject(node.parameters, node.body, environment);
     case node instanceof CallExpression: {
-        const func = evaluate(node.func, environment, builtins);
+        const func = await evaluate(node.func, environment, builtins);
         if (isError(func)) {
             return func;
         }
 
-        const args = evaluateExpressions(node.args, environment, builtins);
+        const args = await evaluateExpressions(node.args, environment, builtins);
         if (args.length === 1 && isError(args[0])) {
             return args[0];
         }
 
-        return evaluateCallExpression(func, args, builtins);
+        return await evaluateCallExpression(func, args, builtins);
     }
     case node instanceof StringExpression:
         return new StringObject(node.value);
     case node instanceof ArrayExpression: {
-        const elements = evaluateExpressions(node.elements, environment, builtins);
+        const elements = await evaluateExpressions(node.elements, environment, builtins);
         if (elements.length === 1 && isError(elements[0])) {
             return elements[0];
         }
@@ -117,12 +117,12 @@ export const evaluate = (node: Node, environment: Environment, builtins: Builtin
         return new ArrayObject(elements);
     }
     case node instanceof IndexExpression: {
-        const left = evaluate(node.left, environment, builtins);
+        const left = await evaluate(node.left, environment, builtins);
         if (isError(left)) {
             return left;
         }
 
-        const index = evaluate(node.index, environment, builtins);
+        const index = await evaluate(node.index, environment, builtins);
         if (isError(index)) {
             return index;
         }
@@ -142,11 +142,11 @@ export const isError = (object: Object): boolean => {
     return object.type() === ObjectType.ERROR;
 }
 
-const evaluateProgram = (program: Program, environment: Environment, builtins: Builtins): Object => {
+const evaluateProgram = async (program: Program, environment: Environment, builtins: Builtins): Promise<Object> => {
     let result = NULL;
 
     for (let i = 0; i < program.statements.length; ++i) {
-        result = evaluate(program.statements[i], environment, builtins);
+        result = await evaluate(program.statements[i], environment, builtins);
 
         if (result instanceof ReturnObject) {
             return result.value;
@@ -158,11 +158,11 @@ const evaluateProgram = (program: Program, environment: Environment, builtins: B
     return result;
 };
 
-const evaluateBlockStatement = (blockStatement: BlockStatement, environment: Environment, builtins: Builtins): Object => {
+const evaluateBlockStatement = async (blockStatement: BlockStatement, environment: Environment, builtins: Builtins): Promise<Object> => {
     let result = NULL;
 
     for (let i = 0; i < blockStatement.statements.length; ++i) {
-        result = evaluate(blockStatement.statements[i], environment, builtins);
+        result = await evaluate(blockStatement.statements[i], environment, builtins);
 
         if (result instanceof ReturnObject || result instanceof ErrorObject) {
             return result;
@@ -253,8 +253,8 @@ const evaluateStringInfixExpression = (operator: string, left: StringObject, rig
     }
 };
 
-const evaluateIfExpression = (expression: IfExpression, environment: Environment, builtins: Builtins): Object => {
-    const condition = evaluate(expression.condition, environment, builtins);
+const evaluateIfExpression = async (expression: IfExpression, environment: Environment, builtins: Builtins): Promise<Object> => {
+    const condition = await evaluate(expression.condition, environment, builtins);
     if (isError(condition)) {
         return condition;
     }
@@ -282,11 +282,11 @@ const evaluateIdentifierExpression = (expression: IdentifierExpression, environm
     return new ErrorObject(`identifier not found: ${expression.value}`);
 };
 
-const evaluateExpressions = (expressions: Expression[], environment: Environment, builtins: Builtins): Object[] => {
+const evaluateExpressions = async (expressions: Expression[], environment: Environment, builtins: Builtins): Promise<Object[]> => {
     const result = [];
 
     for (let i = 0; i < expressions.length; ++i) {
-        const evaluation = evaluate(expressions[i], environment, builtins);
+        const evaluation = await evaluate(expressions[i], environment, builtins);
         if (isError(evaluation)) {
             return [evaluation];
         }
@@ -297,7 +297,7 @@ const evaluateExpressions = (expressions: Expression[], environment: Environment
     return result;
 };
 
-const evaluateCallExpression = (func: Object, args: Object[], builtins: Builtins): Object => {
+const evaluateCallExpression = async (func: Object, args: Object[], builtins: Builtins): Promise<Object> => {
     switch (true) {
     case func instanceof FunctionObject: {
         if (func.parameters.length !== args.length) {
@@ -305,12 +305,12 @@ const evaluateCallExpression = (func: Object, args: Object[], builtins: Builtins
         }
 
         const extendedEnvironment = extendFunctionEnvironment(func, args);
-        const evaluation = evaluate(func.body, extendedEnvironment, builtins);
+        const evaluation = await evaluate(func.body, extendedEnvironment, builtins);
 
         return unwrapReturnValue(evaluation);
     }
     case func instanceof BuiltinObject:
-        return func.func(...args);
+        return await func.func(...args);
     default:
         return new ErrorObject(`not a function: ${func.type()}`)
     }
@@ -348,11 +348,11 @@ const evaluateArrayIndexExpression = (left: ArrayObject, index: IntegerObject): 
     return left.elements[index.value];
 };
 
-const evaluateHashExpression = (node: HashExpression, environment: Environment, builtins: Builtins): Object => {
+const evaluateHashExpression = async (node: HashExpression, environment: Environment, builtins: Builtins): Promise<Object> => {
     const pairs = new Map<string, HashPair>();
 
     for (const [nodeKey, nodeValue] of node.pairs) {
-        const key = evaluate(nodeKey, environment, builtins);
+        const key = await evaluate(nodeKey, environment, builtins);
         if (isError(key)) {
             return NULL;
         }
@@ -361,7 +361,7 @@ const evaluateHashExpression = (node: HashExpression, environment: Environment, 
             return new ErrorObject(`unusable as hash key: ${key.type()}`);
         }
 
-        const value = evaluate(nodeValue, environment, builtins);
+        const value = await evaluate(nodeValue, environment, builtins);
         if (isError(value)) {
             return NULL;
         }
@@ -372,16 +372,16 @@ const evaluateHashExpression = (node: HashExpression, environment: Environment, 
     return new HashObject(pairs);
 };
 
-const evaluateWhileExpression = (node: WhileExpression, environment: Environment, builtins: Builtins): Object => {
+const evaluateWhileExpression = async (node: WhileExpression, environment: Environment, builtins: Builtins): Promise<Object> => {
     let result: Object|null = null;
 
     while (true) {
-        const condition = evaluate(node.condition, environment, builtins);
+        const condition = await evaluate(node.condition, environment, builtins);
         if (!isTruthy(condition)) {
             break;
         }
 
-        result = evaluateBlockStatement(node.body, environment, builtins);
+        result = await evaluateBlockStatement(node.body, environment, builtins);
         if (isError(result) || result instanceof ReturnObject) {
             return result;
         }
