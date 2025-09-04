@@ -14,19 +14,17 @@ Instructions to support
 goto(coordinate)
 find(ressource): coordinate
 gather()
-deposit(item)
-take(item)
-setCraft(item) // parametrer la workbench
-isFull(): boolean
+deposit(itemType)
+take(itemType)
+craft(item)
 isEmpty(): boolean
 wait(time)
 hold(item)
 has(item): boolean
-place(item)
 
 while (condition) {
     if (condition) {
-        var a = 0 // boolean, integer, item, ressource, coordinate
+        var a = 0 // boolean, integer
     }
 }
 ```
